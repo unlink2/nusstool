@@ -1,0 +1,15 @@
+[package]
+name = "nustool"
+version = "0.1.0"
+authors = ["Lukas Krickl <lukas@krickl.dev>"]
+description = ""
+license = "MIT"
+homepage = "https://github.com/unlink2/nustool"
+readme = "../README.md"
+edition = "2021"
+
+[lib]
+name = "nustool"
+path = "src/lib.rs"
+
+[dependencies]
