@@ -24,7 +24,7 @@ impl Default for NusHeader {
     fn default() -> Self {
         Self {
             cfg_flags: 0x80_37_12_40,
-            clck_rate: Default::default(),
+            clck_rate: 0xF,
             boot_addr: 0x80010000,
             lu_ver: Default::default(),
             crc: Default::default(),
@@ -40,9 +40,10 @@ impl Default for NusHeader {
 }
 
 const HEADER_SIZE: usize = 0x40;
-const CRC_START: u32 = 0x1000;
-const CRC_LEN: u32 = 0x100000;
+const CRC_START: usize = 0x1000;
+const CRC_LEN: usize = 0x100000;
 const TITLE_LEN: usize = 0x14;
+const CRC_START_VAL: u32 = 0xf8ca4ddc;
 
 impl NusHeader {
     /// Converts the NusHeader to
@@ -69,7 +70,7 @@ impl NusHeader {
 
         header.try_into().unwrap_or_else(|v: Vec<u8>| {
             panic!(
-                "Expected vec of lenght {} but got {}!",
+                "Expected vec of length {} but got {}!",
                 HEADER_SIZE,
                 v.len()
             )
@@ -79,7 +80,26 @@ impl NusHeader {
     /// Calculates the nus crc sum based on Nagra's program
     /// similar to libdragon's implementation of chksm64
     pub fn crc(&mut self, data: &[u8]) -> Result<u64, Error> {
-        todo!()
+        if data.len() < CRC_LEN {
+            return Err(Error::NusCrcNotEnoughData);
+        }
+
+        const BASE: u32 = 0xffffffff;
+
+        let (crchi, crclo) = (0, 0); // a3 and s0 result
+
+        let s6 = 0x3F;
+        let a0 = CRC_START;
+        let a1 = s6;
+
+        // idnex is t0 and t1
+        for index in (0..CRC_LEN).step_by(4) {
+            // TODO dont unwrap!
+            // v0
+            let current = u32::from_be_bytes(data[index..index + 4].try_into().unwrap());
+        }
+
+        Ok(crchi << 32 | crclo)
     }
 }
 
