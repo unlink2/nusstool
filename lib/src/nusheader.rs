@@ -84,37 +84,78 @@ impl NusHeader {
             return Err(Error::NusCrcNotEnoughData);
         }
 
-        // magic number. initial values for some registers
-        // at * s6
-        let initial = 0x5d588b65_u32.wrapping_mul(0x3f);
-        // some initials are initial + 1
-        let initialp1 = initial + 1;
-        // variables that start as initial
-        let mut t2 = initialp1;
-        let a3: u32 = initialp1;
+        let base = 0xffffffff;
 
-        // variables that start as 0
-        let (crchi, crclo) = (0, 0); // a3 and s0 result
+        let (mut t0, mut t1, mut t2, mut t3, mut t4, mut t5, mut t6, mut t7, mut t8, mut t9) = (
+            0_u32, 0_u32, 0_u32, 0_u32, 0_u32, 0_u32, 0_u32, 0_u32, 0_u32, 0_u32,
+        );
+        let (mut s0, mut s6) = (0_u32, 0_u32);
+        let (mut a0, mut a1, mut a2, mut a3, mut at) = (0_u32, 0_u32, 0_u32, 0_u32, 0_u32);
+        let mut lo = 0;
+        let (mut v0, mut v1) = (0, 0);
+        let mut ra = 0;
 
-        // idnex is t0 and t1
-        for index in (0..CRC_LEN).step_by(4) {
-            // TODO dont unwrap!
-            // v0
-            let val = u32::from_be_bytes(data[index..index + 4].try_into().unwrap());
+        let mut s6 = 0x3f;
+        let mut a0 = 0x1000;
 
-            let v1 = a3.wrapping_add(val);
+        a1 = s6;
+        at = 0x5d588b65;
 
-            if v1 < a3 {
-                t2 += 1;
+        lo = (a1.wrapping_mul(at)) & base;
+        ra = 0x100000;
+        v1 = 0;
+        t0 = 0;
+        t1 = a0;
+        t5 = 32;
+        v0 = lo;
+        v0 = (v0 + 1) & base;
+        a3 = v0;
+        t2 = v0;
+        t3 = v0;
+        s0 = v0;
+        a2 = v0;
+        t4 = v0;
+
+        while t0 != ra {
+            // TODO dont unwrap
+            v0 = u32::from_be_bytes(data[t1 as usize..t1 as usize + 4].try_into().unwrap());
+            v1 = (a3 + v0) & base;
+            at = (v1 < a3).into();
+            a1 = v1;
+
+            if at != 0 {
+                t2 = (t2 + 1) & base;
             }
 
-            let v1 = val & 0x1F;
+            v1 = v0 & 0x1F;
+            t7 = (t5 - v1) & base;
+            t8 = v0 >> t7;
+            t6 = (v0 << v1) & base;
+            a0 = t6 | t8;
+            at = (a2 < v0).into();
+            a3 = a1;
+            t3 = (t3 ^ v0) & base;
+            s0 = (s0 + a0) & base;
+            if at != 0 {
+                t9 = (a3 ^ v0) & base;
 
-            // magic number t5 = 32
-            let t7 = 32_u32.wrapping_sub(v1);
+                a2 = (a2 ^ t9) & base;
+            } else {
+                a2 = (a2 ^ a0) & base;
+            }
+
+            t0 += 4;
+            t7 = (v0 ^ s0) & base;
+            t1 += 4;
+            t4 = (t4 + t7) & base;
         }
 
-        Ok(crchi << 32 | crclo)
+        t6 = (a3 ^ t2) & base;
+        a3 = (t6 ^ t3) & base;
+        t8 = (s0 ^ a2) & base;
+        s0 = (t8 ^ t4) & base;
+
+        Ok((a3 as u64) << 32 | s0 as u64)
     }
 }
 
