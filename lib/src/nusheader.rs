@@ -77,19 +77,24 @@ impl NusHeader {
         })
     }
 
-    /// Calculates the nus crc sum based on Nagra's program
+    /// Calculates the nus crc sum
     /// similar to libdragon's implementation of chksm64
     pub fn crc(&mut self, data: &[u8]) -> Result<u64, Error> {
         if data.len() < CRC_LEN + CRC_START {
             return Err(Error::NusCrcNotEnoughData);
         }
 
-        let (crchi, crclo) = (0, 0); // a3 and s0 result
+        // magic number. initial values for some registers
+        // at * s6
+        let initial = 0x5d588b65_u32.wrapping_mul(0x3f);
+        // some initials are initial + 1
+        let initialp1 = initial + 1;
+        // variables that start as initial
+        let mut t2 = initialp1;
+        let a3: u32 = initialp1;
 
-        let s6 = 0x3F;
-        let a0 = CRC_START;
-        let a1 = s6;
-        let a3: u32 = 0;
+        // variables that start as 0
+        let (crchi, crclo) = (0, 0); // a3 and s0 result
 
         // idnex is t0 and t1
         for index in (0..CRC_LEN).step_by(4) {
@@ -98,6 +103,15 @@ impl NusHeader {
             let val = u32::from_be_bytes(data[index..index + 4].try_into().unwrap());
 
             let v1 = a3.wrapping_add(val);
+
+            if v1 < a3 {
+                t2 += 1;
+            }
+
+            let v1 = val & 0x1F;
+
+            // magic number t5 = 32
+            let t7 = 32_u32.wrapping_sub(v1);
         }
 
         Ok(crchi << 32 | crclo)
