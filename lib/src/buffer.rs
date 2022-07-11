@@ -36,6 +36,13 @@ impl Buffer {
         header.set_crc(&self.data)
     }
 
+    pub fn header<T>(&self) -> Result<T, Error>
+    where
+        T: Header,
+    {
+        T::from_bytes(&self.data)
+    }
+
     /// Append a header to the current buffer
     pub fn add_header(&mut self, header: &dyn Header) {
         let mut header_bytes = header.to_bytes();

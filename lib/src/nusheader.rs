@@ -1,7 +1,10 @@
+use std::fmt::Display;
+
 use crate::{buffer::Header, error::Error};
 
 pub type Crc = (u32, u32);
 
+#[derive(Debug)]
 pub struct NusHeader {
     cfg_flags: u32,
     clck_rate: u32,
@@ -18,6 +21,25 @@ pub struct NusHeader {
     unique: [u8; 2],
     destination: u8,
     version: u8,
+}
+
+impl Display for NusHeader {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "cfg flags: {:x}", self.cfg_flags)?;
+        writeln!(f, "clock rate: {:x}", self.clck_rate)?;
+        writeln!(f, "lu version: {:x}", self.lu_ver)?;
+        writeln!(f, "boot address: {:x}", self.boot_addr)?;
+        writeln!(f, "crc: ({:x}-{:x})", self.crc.0, self.crc.1)?;
+        writeln!(f, "title: {}", self.title)?;
+        writeln!(f, "category: {}", self.category as char)?;
+        writeln!(
+            f,
+            "category: {}{}",
+            self.unique[0] as char, self.unique[1] as char
+        )?;
+        writeln!(f, "destination: {}", self.destination as char)?;
+        writeln!(f, "version: {}", self.version)
+    }
 }
 
 impl Default for NusHeader {
@@ -45,11 +67,12 @@ const CRC_LEN: usize = 0x100000;
 const TITLE_LEN: usize = 0x14;
 
 impl Header for NusHeader {
+    /// Create a nus header from raw bytes
     fn from_bytes(data: &[u8]) -> Result<Self, Error>
     where
         Self: Sized,
     {
-        if data.len() != HEADER_SIZE {
+        if data.len() < HEADER_SIZE {
             return Err(Error::HeaderNotEnoughData);
         }
 
@@ -67,8 +90,6 @@ impl Header for NusHeader {
             reserved_1: Self::try_u64_from_be(data, 0x18)?,
             // 0x14 bytes are reserved for the title
             // it is assumed that it is ascii only!
-            // TODO maybe handle unicode weirdness
-            // but likely it will not matter
             title: String::from_utf8(data[0x20..0x34].to_vec())?,
             reserved_2: data[0x34..0x3B].try_into()?,
             category: data[0x3B],
@@ -101,6 +122,10 @@ impl Header for NusHeader {
         header.push(self.destination);
         header.push(self.version);
 
+        // this panic is justified because
+        // it should never occur that the header
+        // length is not the correct size, and
+        // if it is for some reason it absolutely is a bug
         if header.len() != HEADER_SIZE {
             panic!(
                 "Expected vec of length {} but got {}!",
@@ -112,6 +137,7 @@ impl Header for NusHeader {
         header
     }
 
+    /// Calculate the nus crc and set the value in the header
     fn set_crc(&mut self, data: &[u8]) -> Result<(), Error> {
         let crc = Self::crc(data)?;
         self.crc = crc;
@@ -121,11 +147,11 @@ impl Header for NusHeader {
 
 impl NusHeader {
     fn try_u32_from_be(data: &[u8], at: usize) -> Result<u32, Error> {
-        Ok(u32::from_be_bytes(data[at..4].try_into()?))
+        Ok(u32::from_be_bytes(data[at..at + 4].try_into()?))
     }
 
     fn try_u64_from_be(data: &[u8], at: usize) -> Result<u64, Error> {
-        Ok(u64::from_be_bytes(data[at..8].try_into()?))
+        Ok(u64::from_be_bytes(data[at..at + 8].try_into()?))
     }
 
     /// Calculates the nus crc sum
@@ -164,8 +190,7 @@ impl NusHeader {
         let mut t4 = v0;
 
         while t0 != ra {
-            // TODO dont unwrap
-            v0 = u32::from_be_bytes(data[t1 as usize..t1 as usize + 4].try_into().unwrap());
+            v0 = u32::from_be_bytes(data[t1 as usize..t1 as usize + 4].try_into()?);
             v1 = a3.wrapping_add(v0);
             at = (v1 < a3).into();
             a1 = v1;
