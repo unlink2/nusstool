@@ -1,11 +1,13 @@
-use crate::error::Error;
+use crate::{buffer::Header, error::Error};
+
+pub type Crc = (u32, u32);
 
 pub struct NusHeader {
     cfg_flags: u32,
     clck_rate: u32,
     boot_addr: u32,
     lu_ver: u32,
-    crc: (u32, u32),
+    crc: Crc,
     reserved_1: u64,
     // will be cut off after 0x14 bytes,
     // therefore spilling into the
@@ -42,10 +44,10 @@ const CRC_START: usize = 0x1000;
 const CRC_LEN: usize = 0x100000;
 const TITLE_LEN: usize = 0x14;
 
-impl NusHeader {
+impl Header for NusHeader {
     /// Converts the NusHeader to
     /// a byte array
-    pub fn to_bytes(&self) -> [u8; HEADER_SIZE] {
+    fn to_bytes(&self) -> Vec<u8> {
         let mut header = vec![];
 
         header.extend(self.cfg_flags.to_be_bytes());
@@ -66,24 +68,28 @@ impl NusHeader {
         header.push(self.destination);
         header.push(self.version);
 
-        header.try_into().unwrap_or_else(|v: Vec<u8>| {
+        if header.len() != HEADER_SIZE {
             panic!(
                 "Expected vec of length {} but got {}!",
                 HEADER_SIZE,
-                v.len()
-            )
-        })
+                header.len()
+            );
+        }
+
+        header
     }
 
-    pub fn set_crc(&mut self, data: &[u8]) -> Result<(u32, u32), Error> {
+    fn set_crc(&mut self, data: &[u8]) -> Result<(), Error> {
         let crc = Self::crc(data)?;
         self.crc = crc;
-        Ok(crc)
+        Ok(())
     }
+}
 
+impl NusHeader {
     /// Calculates the nus crc sum
     /// similar to libdragon's implementation of chksm64
-    pub fn crc(data: &[u8]) -> Result<(u32, u32), Error> {
+    pub fn crc(data: &[u8]) -> Result<Crc, Error> {
         if data.len() < CRC_LEN + CRC_START {
             return Err(Error::NusCrcNotEnoughData);
         }

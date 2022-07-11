@@ -13,3 +13,5 @@ name = "nustool"
 path = "src/lib.rs"
 
 [dependencies]
+anyhow = "1.0.58"
+thiserror = "1.0.31"
