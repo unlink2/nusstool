@@ -113,7 +113,7 @@ impl NusHeader {
         let mut t1 = a0;
         let t5 = 32_u32;
         let mut v0 = lo;
-        v0 = v0 + 1;
+        v0 += 1;
         let mut a3 = v0;
         let mut t2 = v0;
         let mut t3 = v0;
