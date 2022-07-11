@@ -13,3 +13,4 @@ path = "src/main.rs"
 
 [dependencies]
 nustool = {path = "../lib"}
+clap = { version = "3.2.8", features = ["derive"] }

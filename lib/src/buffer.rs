@@ -1,11 +1,14 @@
 use crate::error::Error;
 
 pub trait Header {
+    fn from_bytes(data: &[u8]) -> Result<Self, Error>
+    where
+        Self: Sized;
     fn to_bytes(&self) -> Vec<u8>;
     fn set_crc(&mut self, data: &[u8]) -> Result<(), Error>;
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Buffer {
     data: Vec<u8>,
 }
@@ -58,5 +61,32 @@ impl Buffer {
         for _i in 0..by {
             self.data.push(val);
         }
+    }
+
+    /// inject data into the rom,
+    /// if the rom is too small pad until the data can
+    /// be placed  
+    pub fn inject(&mut self, at: usize, data: &[u8]) {
+        // ensure we have enough space in the buffer
+        // to actually inject the data
+        self.pad_to(at + data.len(), 0x0);
+
+        for (i, val) in data.iter().enumerate() {
+            self.data[i] = *val;
+        }
+    }
+
+    /// inject data from a reader
+    pub fn inject_reader(
+        &mut self,
+        at: usize,
+        reader: &mut dyn std::io::Read,
+    ) -> Result<(), Error> {
+        let mut buffer = vec![];
+        reader
+            .read_to_end(&mut buffer)
+            .map_err(|_e| Error::ReadError)?;
+        self.inject(at, &buffer);
+        Ok(())
     }
 }

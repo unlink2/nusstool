@@ -45,6 +45,39 @@ const CRC_LEN: usize = 0x100000;
 const TITLE_LEN: usize = 0x14;
 
 impl Header for NusHeader {
+    fn from_bytes(data: &[u8]) -> Result<Self, Error>
+    where
+        Self: Sized,
+    {
+        if data.len() != HEADER_SIZE {
+            return Err(Error::HeaderNotEnoughData);
+        }
+
+        // TODO this uses a lot of magic offsets
+        // but it should be fine because this *literally* will never change (tm)
+        Ok(Self {
+            cfg_flags: Self::try_u32_from_be(data, 0x00)?,
+            clck_rate: Self::try_u32_from_be(data, 0x04)?,
+            boot_addr: Self::try_u32_from_be(data, 0x08)?,
+            lu_ver: Self::try_u32_from_be(data, 0x0C)?,
+            crc: (
+                Self::try_u32_from_be(data, 0x10)?,
+                Self::try_u32_from_be(data, 0x14)?,
+            ),
+            reserved_1: Self::try_u64_from_be(data, 0x18)?,
+            // 0x14 bytes are reserved for the title
+            // it is assumed that it is ascii only!
+            // TODO maybe handle unicode weirdness
+            // but likely it will not matter
+            title: String::from_utf8(data[0x20..0x34].to_vec())?,
+            reserved_2: data[0x34..0x3B].try_into()?,
+            category: data[0x3B],
+            unique: data[0x3C..0x3E].try_into()?,
+            destination: data[0x3E],
+            version: data[0x3F],
+        })
+    }
+
     /// Converts the NusHeader to
     /// a byte array
     fn to_bytes(&self) -> Vec<u8> {
@@ -87,11 +120,20 @@ impl Header for NusHeader {
 }
 
 impl NusHeader {
+    fn try_u32_from_be(data: &[u8], at: usize) -> Result<u32, Error> {
+        Ok(u32::from_be_bytes(data[at..4].try_into()?))
+    }
+
+    fn try_u64_from_be(data: &[u8], at: usize) -> Result<u64, Error> {
+        Ok(u64::from_be_bytes(data[at..8].try_into()?))
+    }
+
     /// Calculates the nus crc sum
     /// similar to libdragon's implementation of chksm64
+    // TODO clean this up and make it as readable as possible
     pub fn crc(data: &[u8]) -> Result<Crc, Error> {
         if data.len() < CRC_LEN + CRC_START {
-            return Err(Error::NusCrcNotEnoughData);
+            return Err(Error::CrcNotEnoughData);
         }
 
         let mut t8;
@@ -172,14 +214,14 @@ mod test {
 
     #[test]
     fn crc_fail() {
-        assert_eq!(Err(Error::NusCrcNotEnoughData), NusHeader::crc(&[0, 1, 2]));
+        assert_eq!(Err(Error::CrcNotEnoughData), NusHeader::crc(&[0, 1, 2]));
 
         // test failure off by 1
         let mut test_data = vec![];
         for i in 0..CRC_END - 1 {
             test_data.push(i as u8);
         }
-        assert_eq!(Err(Error::NusCrcNotEnoughData), NusHeader::crc(&test_data));
+        assert_eq!(Err(Error::CrcNotEnoughData), NusHeader::crc(&test_data));
     }
 
     #[test]
