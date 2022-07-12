@@ -12,5 +12,5 @@ name = "nusstool"
 path = "src/main.rs"
 
 [dependencies]
-nusstool = {path = "../lib"}
+nusstool = { path = "../lib" }
 clap = { version = "3.2.8", features = ["derive"] }

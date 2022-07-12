@@ -14,7 +14,7 @@ pub trait Header {
 
 #[derive(Debug, Default)]
 pub struct Buffer {
-    data: Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 impl Buffer {

@@ -6,22 +6,22 @@ pub type Crc = (u32, u32);
 
 #[derive(Debug)]
 pub struct NusHeader {
-    cfg_flags: u32,
-    clck_rate: u32,
-    boot_addr: u32,
-    lu_ver: u32,
+    pub cfg_flags: u32,
+    pub clck_rate: u32,
+    pub boot_addr: u32,
+    pub lu_ver: u32,
     crc: Crc,
     reserved_1: u64,
     // will be cut off after 0x14 bytes,
     // therefore spilling into the
     // reserved part after
     // should be impossible
-    title: String,
+    pub title: String,
     reserved_2: [u8; 0x07],
-    category: u8,
-    unique: [u8; 2],
-    destination: u8,
-    version: u8,
+    pub category: u8,
+    pub unique: [u8; 2],
+    pub destination: u8,
+    pub version: u8,
 }
 
 impl Display for NusHeader {
