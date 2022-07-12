@@ -177,59 +177,47 @@ impl NusHeader {
         }
 
         // required outside of loop
-        let mut t8;
-        let mut t6;
-        let mut a3 = INITIAL;
-        let mut s0 = INITIAL;
-
-        let mut t7;
-        let mut t9;
-
         let mut t2 = INITIAL;
         let mut t3 = INITIAL;
         let mut a2 = INITIAL;
         let mut t4 = INITIAL;
+        let mut crc1 = INITIAL;
+        let mut crc2 = INITIAL;
 
-        for t1 in (0..CRC_LEN).step_by(4) {
-            let current_data = u32::from_be_bytes(
-                data[CRC_START + t1 as usize..CRC_START + t1 as usize + 4].try_into()?,
-            );
-            let v1 = a3.wrapping_add(current_data);
-            let a1 = v1;
+        for idx in (0..CRC_LEN).step_by(4) {
+            let current_data =
+                u32::from_be_bytes(data[CRC_START + idx..CRC_START + idx + 4].try_into()?);
 
-            if v1 < a3 {
+            let a1 = crc1.wrapping_add(current_data);
+
+            if a1 < crc1 {
                 t2 = t2.wrapping_add(1);
             }
 
             let v1 = current_data & 0x1F;
-            t7 = T5.wrapping_sub(v1);
-            t8 = current_data >> t7;
-            t6 = current_data << v1;
-            let a0 = t6 | t8;
-            a3 = a1;
+            let a0 = (current_data << v1) | (current_data >> (T5.wrapping_sub(v1)));
+
+            crc1 = a1;
             t3 ^= current_data;
-            s0 = s0.wrapping_add(a0);
+
+            crc2 = crc2.wrapping_add(a0);
 
             if a2 < current_data {
-                t9 = a3 ^ current_data;
-                a2 ^= t9;
+                a2 ^= crc1 ^ current_data;
             } else {
                 a2 ^= a0;
             }
 
-            t7 = current_data ^ s0;
-            t4 = t4.wrapping_add(t7);
+            t4 = t4.wrapping_add(current_data ^ crc2);
         }
 
         // crc1
-        t6 = a3 ^ t2;
-        a3 = t6 ^ t3;
+        crc1 = (crc1 ^ t2) ^ t3;
 
         // crc2
-        t8 = s0 ^ a2;
-        s0 = t8 ^ t4;
+        crc2 = (crc2 ^ a2) ^ t4;
 
-        Ok((a3, s0))
+        Ok((crc1, crc2))
     }
 }
 
