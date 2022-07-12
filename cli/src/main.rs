@@ -19,6 +19,7 @@ enum Commands {
     ShowNusHeader,
     SetNusHeader,
     AddNusHeader,
+    CalcNusCrc,
     PadTo,
     PadBy,
 }
@@ -48,5 +49,12 @@ fn main() {
         Commands::AddNusHeader => {}
         Commands::PadTo => {}
         Commands::PadBy => {}
+        Commands::CalcNusCrc => {
+            let mut buffer = vec![];
+            input.read_to_end(&mut buffer).unwrap();
+
+            let crc = NusHeader::crc(&buffer).unwrap();
+            println!("{:x}-{:x}", crc.0, crc.1);
+        }
     }
 }

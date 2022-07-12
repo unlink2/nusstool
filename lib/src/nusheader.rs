@@ -15,6 +15,7 @@ pub struct NusHeader {
     // will be cut off after 0x14 bytes,
     // therefore spilling into the
     // reserved part after
+    // should be impossible
     title: String,
     reserved_2: [u8; 0x07],
     category: u8,
@@ -193,7 +194,8 @@ impl NusHeader {
             }
 
             let v1 = current_data & 0x1F;
-            let a0 = (current_data << v1) | (current_data >> (32_u32.wrapping_sub(v1)));
+            let a0 = (current_data.wrapping_shl(v1))
+                | (current_data.wrapping_shr(32_u32.wrapping_sub(v1)));
 
             crc1 = a1;
             t3 ^= current_data;
