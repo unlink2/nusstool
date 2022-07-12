@@ -158,72 +158,63 @@ impl NusHeader {
     /// similar to libdragon's implementation of chksm64
     // TODO clean this up and make it as readable as possible
     pub fn crc(data: &[u8]) -> Result<Crc, Error> {
+        const INITIAL: u32 = 0x3f_u32.wrapping_mul(0x5d588b65) + 1;
+        const T5: u32 = 32;
+
         if data.len() < CRC_LEN + CRC_START {
             return Err(Error::CrcNotEnoughData);
         }
 
+        // required outside of loop
         let mut t8;
         let mut t6;
+        let mut a3 = INITIAL;
+        let mut s0 = INITIAL;
+
         let mut t7;
         let mut t9;
 
-        let mut v1;
+        let mut t2 = INITIAL;
+        let mut t3 = INITIAL;
+        let mut a2 = INITIAL;
+        let mut t4 = INITIAL;
 
-        let s6 = 0x3f;
-        let mut a0 = 0x1000;
+        for t1 in (0..CRC_LEN).step_by(4) {
+            let current_data = u32::from_be_bytes(
+                data[CRC_START + t1 as usize..CRC_START + t1 as usize + 4].try_into()?,
+            );
+            let v1 = a3.wrapping_add(current_data);
+            let a1 = v1;
 
-        let mut a1: u32 = s6;
-        let mut at = 0x5d588b65;
-
-        let lo = a1.wrapping_mul(at);
-        let ra = 0x100000;
-        let mut t0 = 0;
-        let mut t1 = a0;
-        let t5 = 32_u32;
-        let mut v0 = lo;
-        v0 += 1;
-        let mut a3 = v0;
-        let mut t2 = v0;
-        let mut t3 = v0;
-        let mut s0 = v0;
-        let mut a2 = v0;
-        let mut t4 = v0;
-
-        while t0 != ra {
-            v0 = u32::from_be_bytes(data[t1 as usize..t1 as usize + 4].try_into()?);
-            v1 = a3.wrapping_add(v0);
-            at = (v1 < a3).into();
-            a1 = v1;
-
-            if at != 0 {
+            if v1 < a3 {
                 t2 = t2.wrapping_add(1);
             }
 
-            v1 = v0 & 0x1F;
-            t7 = t5.wrapping_sub(v1);
-            t8 = v0 >> t7;
-            t6 = v0 << v1;
-            a0 = t6 | t8;
-            at = (a2 < v0).into();
+            let v1 = current_data & 0x1F;
+            t7 = T5.wrapping_sub(v1);
+            t8 = current_data >> t7;
+            t6 = current_data << v1;
+            let a0 = t6 | t8;
             a3 = a1;
-            t3 ^= v0;
+            t3 ^= current_data;
             s0 = s0.wrapping_add(a0);
-            if at != 0 {
-                t9 = a3 ^ v0;
 
+            if a2 < current_data {
+                t9 = a3 ^ current_data;
                 a2 ^= t9;
             } else {
                 a2 ^= a0;
             }
 
-            t0 += 4;
-            t7 = v0 ^ s0;
-            t1 += 4;
+            t7 = current_data ^ s0;
             t4 = t4.wrapping_add(t7);
         }
 
+        // crc1
         t6 = a3 ^ t2;
         a3 = t6 ^ t3;
+
+        // crc2
         t8 = s0 ^ a2;
         s0 = t8 ^ t4;
 
