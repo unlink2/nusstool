@@ -1,16 +1,16 @@
 [package]
-name = "nustool-cli"
+name = "nusstool-cli"
 version = "0.1.0"
 authors = ["Lukas Krickl <lukas@krickl.dev>"]
 description = ""
 license = "MIT"
-homepage = "https://github.com/unlink2/nustool"
+homepage = "https://github.com/unlink2/nusstool"
 edition = "2021"
 
 [[bin]]
-name = "nustool"
+name = "nusstool"
 path = "src/main.rs"
 
 [dependencies]
-nustool = {path = "../lib"}
+nusstool = {path = "../lib"}
 clap = { version = "3.2.8", features = ["derive"] }

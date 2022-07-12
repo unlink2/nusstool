@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use nustool::{buffer::Buffer, nusheader::NusHeader};
+use nusstool::{buffer::Buffer, nusheader::NusHeader};
 use std::fs::File;
 
 #[derive(Parser, Debug)]
