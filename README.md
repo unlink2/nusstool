@@ -1,8 +1,8 @@
 
-# nustool
+# nusstool
 
-![](https://github.com/unlink2/nustool/actions/workflows/build.yml/badge.svg)
-![](https://github.com/unlink2/nustool/actions/workflows/test.yml/badge.svg)
+![](https://github.com/unlink2/nusstool/actions/workflows/build.yml/badge.svg)
+![](https://github.com/unlink2/nusstool/actions/workflows/test.yml/badge.svg)
 
 A collection of tools for (n64) rom manipulation
 

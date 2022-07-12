@@ -1,15 +1,18 @@
 [package]
-name = "nustool"
+name = "nusstool"
 version = "0.1.0"
 authors = ["Lukas Krickl <lukas@krickl.dev>"]
 description = ""
 license = "MIT"
-homepage = "https://github.com/unlink2/nustool"
+homepage = "https://github.com/unlink2/nusstool"
 readme = "../README.md"
 edition = "2021"
 
 [lib]
-name = "nustool"
+name = "nusstool"
 path = "src/lib.rs"
 
 [dependencies]
+thiserror = "1.0.31"
+
+[features]
