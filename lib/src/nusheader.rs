@@ -170,8 +170,6 @@ impl NusHeader {
     // TODO clean this up and make it as readable as possible
     pub fn crc(data: &[u8]) -> Result<Crc, Error> {
         const INITIAL: u32 = 0x3f_u32.wrapping_mul(0x5d588b65) + 1;
-        const T5: u32 = 32;
-
         if data.len() < CRC_LEN + CRC_START {
             return Err(Error::CrcNotEnoughData);
         }
@@ -195,7 +193,7 @@ impl NusHeader {
             }
 
             let v1 = current_data & 0x1F;
-            let a0 = (current_data << v1) | (current_data >> (T5.wrapping_sub(v1)));
+            let a0 = (current_data << v1) | (current_data >> (32_u32.wrapping_sub(v1)));
 
             crc1 = a1;
             t3 ^= current_data;
