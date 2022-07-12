@@ -4,6 +4,10 @@ pub trait Header {
     fn from_bytes(data: &[u8]) -> Result<Self, Error>
     where
         Self: Sized;
+    fn default_with_crc(&mut self, data: &[u8]) -> Result<Self, Error>
+    where
+        Self: Sized;
+
     fn to_bytes(&self) -> Vec<u8>;
     fn set_crc(&mut self, data: &[u8]) -> Result<(), Error>;
 }

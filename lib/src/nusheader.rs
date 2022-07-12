@@ -137,6 +137,17 @@ impl Header for NusHeader {
         header
     }
 
+    /// Same as default, but calculates the crc
+    fn default_with_crc(&mut self, data: &[u8]) -> Result<Self, Error>
+    where
+        Self: Sized,
+    {
+        Ok(Self {
+            crc: Self::crc(data)?,
+            ..Default::default()
+        })
+    }
+
     /// Calculate the nus crc and set the value in the header
     fn set_crc(&mut self, data: &[u8]) -> Result<(), Error> {
         let crc = Self::crc(data)?;
