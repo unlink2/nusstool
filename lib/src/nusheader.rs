@@ -98,7 +98,7 @@ impl Header for NusHeader {
             reserved_1: Self::try_u64_from_be(data, 0x18)?,
             // 0x14 bytes are reserved for the title
             // it is assumed that it is ascii only!
-            title: String::from_utf8(data[0x20..0x34].to_vec())?,
+            title: String::from_utf8(data[0x20..0x34].to_vec()).unwrap_or_else(|_e| "".into()),
             reserved_2: data[0x34..0x3B].try_into()?,
             category: data[0x3B],
             unique: data[0x3C..0x3E].try_into()?,
