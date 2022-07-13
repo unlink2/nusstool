@@ -1,7 +1,9 @@
 use crate::error::Error;
 
 pub trait Header {
-    fn len() -> usize where Self: Sized;
+    fn len() -> usize
+    where
+        Self: Sized;
 
     fn from_bytes(data: &[u8]) -> Result<Self, Error>
     where
@@ -61,6 +63,12 @@ impl Buffer {
         let header_bytes = header.to_bytes();
         for (i, val) in header_bytes.iter().enumerate() {
             self.data[i] = *val;
+        }
+    }
+
+    pub fn insert(&mut self, at: usize, len: usize, val: u8) {
+        for i in 0..len {
+            self.data.insert(i + at, val);
         }
     }
 

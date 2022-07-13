@@ -82,6 +82,7 @@ enum Commands {
     InjectFile { at: usize, path: String },
     PadTo { to: usize },
     PadBy { by: usize },
+    Insert { at: usize, len: usize, val: u8 },
 }
 
 fn main() {
@@ -146,6 +147,10 @@ fn main() {
         Commands::InjectFile { at, path } => {
             let mut file = File::open(path).expect("Unable to open input file");
             buffer.inject_reader(at, &mut file).unwrap();
+            buffer.write(&mut output).unwrap();
+        }
+        Commands::Insert { at, len, val } => {
+            buffer.insert(at, len, val);
             buffer.write(&mut output).unwrap();
         }
     }

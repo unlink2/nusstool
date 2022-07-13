@@ -121,7 +121,7 @@ impl Header for NusHeader {
         header.extend(self.reserved_1.to_be_bytes());
 
         // Title always needs to be exactly 0x14 bytes
-        let title = format!("{:0<20}", self.title);
+        let title = format!("{:\0<20}", self.title);
         header.extend(&title.as_bytes()[0..TITLE_LEN]);
 
         header.extend(self.reserved_2);
