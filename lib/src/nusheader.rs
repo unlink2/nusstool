@@ -62,12 +62,19 @@ impl Default for NusHeader {
     }
 }
 
-const HEADER_SIZE: usize = 0x40;
+pub const HEADER_SIZE: usize = 0x40;
 const CRC_START: usize = 0x1000;
 const CRC_LEN: usize = 0x100000;
 const TITLE_LEN: usize = 0x14;
 
 impl Header for NusHeader {
+    fn len() -> usize
+    where
+        Self: Sized,
+    {
+        HEADER_SIZE
+    }
+
     /// Create a nus header from raw bytes
     fn from_bytes(data: &[u8]) -> Result<Self, Error>
     where

@@ -1,6 +1,8 @@
 use crate::error::Error;
 
 pub trait Header {
+    fn len() -> usize where Self: Sized;
+
     fn from_bytes(data: &[u8]) -> Result<Self, Error>
     where
         Self: Sized;

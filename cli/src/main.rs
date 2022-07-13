@@ -1,5 +1,5 @@
 use clap::{Args, Parser, Subcommand};
-use nusstool::{buffer::Buffer, nusheader::NusHeader};
+use nusstool::{buffer::Buffer, nusheader::NusHeader, nusheader::HEADER_SIZE};
 use std::fs::File;
 
 #[derive(Parser, Debug)]
@@ -78,6 +78,8 @@ enum Commands {
     SetNusHeader(NusHeaderInput),
     AddNusHeader(NusHeaderInput),
     CalcNusCrc,
+    Inject { at: usize, data: Vec<u8> },
+    InjectFile { at: usize, path: String },
     PadTo { to: usize },
     PadBy { by: usize },
 }
@@ -120,6 +122,7 @@ fn main() {
         Commands::AddNusHeader(input) => {
             let mut header = NusHeader::default();
             input.apply(&mut header);
+            buffer.inject(0, &[0; HEADER_SIZE]);
             buffer.set_crc(&mut header).unwrap();
             buffer.add_header(&header);
             buffer.write(&mut output).unwrap();
@@ -135,6 +138,15 @@ fn main() {
         Commands::CalcNusCrc => {
             let crc = NusHeader::crc(&buffer.data).unwrap();
             println!("{:x}-{:x}", crc.0, crc.1);
+        }
+        Commands::Inject { at, data } => {
+            buffer.inject(at, &data);
+            buffer.write(&mut output).unwrap();
+        }
+        Commands::InjectFile { at, path } => {
+            let mut file = File::open(path).expect("Unable to open input file");
+            buffer.inject_reader(at, &mut file).unwrap();
+            buffer.write(&mut output).unwrap();
         }
     }
 }
