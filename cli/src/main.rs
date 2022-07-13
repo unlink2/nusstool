@@ -1,5 +1,8 @@
 use clap::{Args, Parser, Subcommand};
-use nusstool::{buffer::Buffer, nusheader::NusHeader, nusheader::HEADER_SIZE};
+use nusstool::{
+    buffer::{Buffer, Header},
+    nusheader::NusHeader,
+};
 use std::fs::File;
 
 #[derive(Parser, Debug)]
@@ -123,9 +126,9 @@ fn main() {
         Commands::AddNusHeader(input) => {
             let mut header = NusHeader::default();
             input.apply(&mut header);
-            buffer.inject(0, &[0; HEADER_SIZE]);
+            buffer.insert(0, NusHeader::len(), 0);
             buffer.set_crc(&mut header).unwrap();
-            buffer.add_header(&header);
+            buffer.set_header(&header);
             buffer.write(&mut output).unwrap();
         }
         Commands::PadTo { to } => {
