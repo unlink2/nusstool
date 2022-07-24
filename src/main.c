@@ -23,12 +23,9 @@ int main(int argc, char **argv) {
 #ifdef TEST
 
 #include "macros.h"
-#include "example.h"
 
 int main(int argc, char **argv) {
-  const struct CMUnitTest tests[] = {
-      cmocka_unit_test(test_is_zero),
-  };
+  const struct CMUnitTest tests[] = {NULL};
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
 

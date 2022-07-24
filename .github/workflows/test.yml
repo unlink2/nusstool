@@ -18,8 +18,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install dependencies
-      run: sudo apt install libcmocka-dev
+      run: sudo apt install libcmocka-dev bear
     - name: Run lint 
-      run: make lint
+      run: make buildcmd && make lint
     - name: Run tests
       run: make test
