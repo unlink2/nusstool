@@ -16,11 +16,6 @@ A collection of tools for (n64) rom manipulation
 
 ## Installation
 
-This program requires the latest version of Rust.
-
-```sh
-cargo install --path ./cli
-```
 
 ## Usage
 

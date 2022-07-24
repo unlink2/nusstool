@@ -1,0 +1,14 @@
+---
+Checks: "*,
+        -abseil-*,
+        -llvm*,
+	-google*,
+	-modernize-use-trailing-return-type,
+        -readability-else-after-return,
+        -readability-static-accessed-through-instance,
+        -readability-avoid-const-params-in-decls,
+	-misc-unused-parameters
+"
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+FormatStyle:     None

@@ -17,7 +17,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Check clippy
-      run: cargo clippy -- -D warnings
+    - name: Install dependencies
+      run: sudo apt install libcmocka-dev
+    - name: Run lint 
+      run: make lint
     - name: Run tests
-      run: cargo test --verbose
+      run: make test
