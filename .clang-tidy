@@ -7,7 +7,11 @@ Checks: "*,
         -readability-else-after-return,
         -readability-static-accessed-through-instance,
         -readability-avoid-const-params-in-decls,
-	-misc-unused-parameters
+	-misc-unused-parameters,
+	-bugprone-easily-swappable-parameters,
+	-cert-err33-c,
+	-readability-identifier-length,
+	-altera-unroll-loops
 "
 WarningsAsErrors: ''
 HeaderFilterRegex: ''

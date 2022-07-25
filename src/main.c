@@ -23,9 +23,11 @@ int main(int argc, char **argv) {
 #ifdef TEST
 
 #include "macros.h"
+#include "nusheader.h"
 
 int main(int argc, char **argv) {
-  const struct CMUnitTest tests[] = {NULL};
+  const struct CMUnitTest tests[] = {cmocka_unit_test(test_crc_fail),
+                                     cmocka_unit_test(test_crc)};
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
 

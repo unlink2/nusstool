@@ -15,13 +15,16 @@ void buffer_init(Buffer *buffer);
 Error buffer_read(Buffer *buffer, FILE *file);
 Error buffer_write(const Buffer *buffer, FILE *file);
 
-void buffer_pad_to(Buffer *buffer, size loc, size len, u8 val);
-void buffer_pad_by(Buffer *buffer, size loc, size len, u8 val);
+void buffer_pad_to(Buffer *buffer, const size loc, const size len,
+                   const u8 val);
+void buffer_pad_by(Buffer *buffer, const size loc, const size len,
+                   const u8 val);
 
-void buffer_inject(Buffer *buffer, size loc, u8 *data, size len);
-void buffer_inject_file(Buffer *buffer, size loc, FILE *file);
+void buffer_inject(Buffer *buffer, const size loc, const u8 *data,
+                   const size len);
+Error buffer_inject_file(Buffer *buffer, size loc, FILE *file);
 
-void buffer_resize(Buffer *buffer);
+void buffer_resize(Buffer *buffer, const size new_len);
 
 void buffer_free(Buffer *buffer);
 

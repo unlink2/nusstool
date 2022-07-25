@@ -8,6 +8,7 @@ INC_INSTALL_DIR := /usr/local/include/$(TARGET_EXEC)/
 TYPE := bin # valid inputs: bin, a (static lib), so (shared lib) 
 
 BUILD_DIR := ./build
+BUILD_DIR_TEST := $(BUILD_DIR)/build_test
 SRC_DIRS := ./src
 INC_DIRS := ./include
 EX_CC_FLAGS :=
@@ -33,7 +34,7 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 # The -MMD and -MP flags together generate Makefiles for us!
 # These files will have .d instead of .o as the output.
-CFLAGS := $(INC_FLAGS) -MMD -MP -Wall -Wpedantic -g $(EX_CC_FLAGS) -DTYPE=$(TYPE)
+CFLAGS := $(INC_FLAGS) -MMD -MP -Wall -Wpedantic -g $(EX_CC_FLAGS) -DTYPE=$(TYPE) -std=c99
 
 LDFLAGS := $(EX_LD_FLAGS)
 
@@ -67,8 +68,8 @@ build_test:
 
 .PHONY: test 
 test: 
-	make build_test 
-	make run TARGET_EXEC=$(TEST_EXEC) TYPE=bin
+	make build_test BUILD_DIR=$(BUILD_DIR_TEST) 
+	make run TARGET_EXEC=$(TEST_EXEC) BUILD_DIR=$(BUILD_DIR_TEST) TYPE=bin
 
 # Run task 
 .PHONY: run
@@ -83,7 +84,7 @@ leak:
 
 .PHONY: testleak
 testleak:
-	valgrind $(BUILD_DIR)/$(TEST_EXEC)
+	valgrind $(BUILD_DIR_TEST)/$(TEST_EXEC)
 
 .PHONY: doc
 doc: 
