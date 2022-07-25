@@ -1,0 +1,24 @@
+---
+Checks: "*,
+        -abseil-*,
+        -llvm*,
+	-google*,
+	-modernize-use-trailing-return-type,
+        -readability-else-after-return,
+        -readability-static-accessed-through-instance,
+        -readability-avoid-const-params-in-decls,
+	-misc-unused-parameters,
+	-bugprone-easily-swappable-parameters,
+	-cert-err33-c,
+	-readability-identifier-length,
+	-altera-unroll-loops,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -altera-struct-pack-align,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -cert-err34-c,
+  -readability-function-cognitive-complexity
+"
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+FormatStyle:     None
