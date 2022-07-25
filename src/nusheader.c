@@ -3,6 +3,27 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
+void nus_add_header(Buffer *buffer) {
+  size old_len = buffer->len;
+  u8 *old_data = buffer->data;
+
+  buffer->len += NUS_HEADER_SIZE;
+  buffer->data = malloc(buffer->len);
+
+  // this is different from the regular buffer resize function
+  memset(buffer->data, 0, NUS_HEADER_SIZE);
+  memcpy(buffer->data + NUS_HEADER_SIZE, old_data, old_len);
+
+  free(old_data);
+}
+
+void nus_set_header(Buffer *buffer, NusHeader *header) {
+  nus_crc(header, buffer->data, buffer->len);
+  u8 header_bytes[NUS_HEADER_SIZE];
+  nus_to_bytes(header, header_bytes);
+  memcpy(buffer->data, header_bytes, NUS_HEADER_SIZE);
+}
+
 void nus_fprint(FILE *file, const NusHeader *header) {
   fprintf(file, "cfg flags: %x\n", header->cfg_flags);
   fprintf(file, "clock rate: %x\n", header->clck_rate);
@@ -20,7 +41,7 @@ void nus_fprint(FILE *file, const NusHeader *header) {
 
   fprintf(file, "category: %c\n", header->category);
   fprintf(file, "uid: %c%c\n", header->unique[0], header->unique[1]);
-  fprintf(file, "version: %d\n", header->version);
+  fprintf(file, "destination: %c\n", header->destination);
   fprintf(file, "version: %d\n", header->version);
 }
 
@@ -37,17 +58,68 @@ u32 ntohl_from_(const u8 *data, size offset) {
   return ntohl(*((u32 *)(data + offset)));
 }
 
-void nus_from_bytes(NusHeader *header, const u8 *data, const size len) {
+Error nus_from_bytes(NusHeader *header, const u8 *data, const size len) {
+  if (len < NUS_HEADER_SIZE) {
+    return ERR_HEADER_NOT_ENOUGH_DATA;
+  }
+
   // default values first!
   nus_init(header);
+
+  // read the corresponding bytes
+  header->cfg_flags = ntohl_from_(data, 0x00);
+  header->clck_rate = ntohl_from_(data, 0x04);
+  header->boot_addr = ntohl_from_(data, 0x08);
+  header->lu_ver = ntohl_from_(data, 0x0C);
+  header->crc.crc1 = ntohl_from_(data, 0x10);
+  header->crc.crc2 = ntohl_from_(data, 0x14);
+
+  memcpy(header->reserved_1, data + 0x18, 0x08);
+  memcpy(header->title, data + 0x20, NUS_TITLE_LEN);
+  memcpy(header->reserved_2, data + 0x34, 0x07);
+
+  header->category = (char)data[0x3B];
+
+  header->unique[0] = (char)data[0x3C];
+  header->unique[1] = (char)data[0x3D];
+
+  header->destination = (char)data[0x3E];
+  header->version = (char)data[0x3F];
 
   // attempt crc, if it fails just leave it be!
   // if it didn't failt it should correct a wrong crc value
   // or calculate the same result as the exisiting value
   nus_crc(header, data, len);
+
+  return OK;
 }
 
-void nus_to_bytes(NusHeader *header, u8 *result) {}
+// writes a BE u32 to result at offset
+void htonl_to_(u32 n, u8 *result, const size offset) {
+  n = htonl(n);
+  memcpy(result + offset, &n, sizeof(u32));
+}
+
+void nus_to_bytes(NusHeader *header, u8 *result) {
+  htonl_to_(header->cfg_flags, result, 0x00);
+  htonl_to_(header->clck_rate, result, 0x04);
+  htonl_to_(header->boot_addr, result, 0x08);
+  htonl_to_(header->lu_ver, result, 0x0C);
+  htonl_to_(header->crc.crc1, result, 0x10);
+  htonl_to_(header->crc.crc2, result, 0x14);
+
+  memcpy(result + 0x18, header->reserved_1, 0x08);
+  memcpy(result + 0x20, header->title, NUS_TITLE_LEN);
+  memcpy(result + 0x34, header->reserved_2, 0x07);
+
+  result[0x3B] = header->category;
+
+  result[0x3C] = header->unique[0];
+  result[0x3D] = header->unique[1];
+
+  result[0x3E] = header->destination;
+  result[0x3F] = header->version;
+}
 
 Error calc_crc_(const u8 *data, const size len, NusCrc *crc) {
   // this is just some magic number used as an initial value

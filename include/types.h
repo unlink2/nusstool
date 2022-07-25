@@ -13,4 +13,9 @@ typedef unsigned long u64;
 typedef unsigned long i64;
 typedef size_t size;
 
+typedef u8 bool;
+
+#define TRUE 1
+#define FALSE 0
+
 #endif

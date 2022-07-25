@@ -3,7 +3,10 @@
 #include <string.h>
 #include "macros.h"
 
-void buffer_init(Buffer *buffer) { buffer->data = NULL; }
+void buffer_init(Buffer *buffer) {
+  buffer->data = NULL;
+  buffer->len = 0;
+}
 
 Error file_len(FILE *file, size *len) {
   if (!fseek(file, 0, SEEK_END)) {
@@ -19,17 +22,30 @@ Error file_len(FILE *file, size *len) {
 }
 
 Error buffer_read(Buffer *buffer, FILE *file) {
-  size flen = 0;
-  if (file_len(file, &flen)) {
-    return ERR_READ;
-  }
+  size flen = 524288; // start at 0.5mb
+  size total_read = 0;
 
   buffer->data = malloc(flen + 1);
   buffer->len = flen;
 
-  if (!fread(buffer->data, flen, 1, file)) {
-    return ERR_READ;
+  char buf = '\0';
+  // read 1 byte until no more bytes are left to read
+  // TODO this is likely slow, but ok for now
+  while (fread(&buf, 1, 1, file) > 0) {
+    // the resize call will not have any effect
+    // unless the requested size is larger than the new size!
+    if (total_read >= buffer->len) {
+      buffer_resize(buffer, buffer->len * 2);
+    }
+
+    // write to next byte
+    buffer->data[total_read++] = buf;
   }
+
+  // make sure we have the correct length in the end
+  // any additional data does not matter and can be ignored
+  // TODO maybe keep track of alloc lenght at some point
+  buffer->len = total_read;
 
   return OK;
 }
@@ -88,6 +104,10 @@ Error buffer_inject_file(Buffer *buffer, const size loc, FILE *file) {
 }
 
 void buffer_resize(Buffer *buffer, const size new_len) {
+  if (new_len < buffer->len) {
+    return;
+  }
+
   u8 *new_buffer = malloc(new_len);
   memcpy(new_buffer, buffer->data, MIN(buffer->len, new_len));
 

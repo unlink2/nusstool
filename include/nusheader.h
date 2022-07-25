@@ -1,6 +1,7 @@
 #ifndef NUSHEADER_H_
 #define NUSHEADER_H_
 
+#include "buffer.h"
 #include "error.h"
 #include "types.h"
 #include <stdio.h>
@@ -23,7 +24,7 @@ typedef struct NusHeader { // NOLINT
   u32 lu_ver;
 
   NusCrc crc;
-  u64 reserved_1;
+  u8 reserved_1[0x08];
 
   char title[NUS_TITLE_LEN];
   u8 reserved_2[0x07]; // NOLINT
@@ -33,6 +34,14 @@ typedef struct NusHeader { // NOLINT
   u8 version;
 } NusHeader;
 
+// Creates enough space in the buffer for a header
+// and shifts the remaining buffer back
+void nus_add_header(Buffer *buffer);
+
+// Sets the header and calculates the crc
+// This function assumes the buffer already has enough room for a header
+void nus_set_header(Buffer *buffer, NusHeader *header);
+
 /**
  * Format print the nus header
  */
@@ -40,7 +49,7 @@ void nus_fprint(FILE *file, const NusHeader *header);
 
 void nus_init(NusHeader *header);
 
-void nus_from_bytes(NusHeader *header, const u8 *data, const size len);
+Error nus_from_bytes(NusHeader *header, const u8 *data, const size len);
 void nus_to_bytes(NusHeader *header, u8 *result);
 
 Error nus_crc(NusHeader *header, const u8 *data, const size len);
