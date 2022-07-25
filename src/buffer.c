@@ -57,8 +57,7 @@ Error buffer_write(const Buffer *buffer, FILE *file) {
   return OK;
 }
 
-void buffer_pad_to(Buffer *buffer, const size loc, const size len,
-                   const u8 val) {
+void buffer_pad_to(Buffer *buffer, const size len, const u8 val) {
   // if we already have the desired size dont do anything
   if (len <= buffer->len) {
     return;
@@ -71,8 +70,7 @@ void buffer_pad_to(Buffer *buffer, const size loc, const size len,
   memset(buffer->data + old_len, (int)(buffer->len - old_len), val);
 }
 
-void buffer_pad_by(Buffer *buffer, const size loc, const size len,
-                   const u8 val) {
+void buffer_pad_by(Buffer *buffer, const size len, const u8 val) {
   size old_len = buffer->len;
   buffer_resize(buffer, buffer->len + len);
 
@@ -82,22 +80,33 @@ void buffer_pad_by(Buffer *buffer, const size loc, const size len,
 
 void buffer_inject(Buffer *buffer, const size loc, const u8 *data,
                    const size len) {
-  size old_len = buffer->len;
-  buffer_resize(buffer, buffer->len + len);
+  if (loc + len > buffer->len) {
+    buffer_resize(buffer, loc + len);
+  }
 
   // copy to destination
-  memcpy(buffer->data + old_len, data, len);
+  memcpy(buffer->data + loc, data, len);
+}
+
+void buffer_set(Buffer *buffer, const size loc, const u8 val, const u8 len) {
+  if (loc + len > buffer->len) {
+    buffer_resize(buffer, loc + len);
+  }
+
+  // copy to destination
+  memset(buffer->data + loc, val, len);
 }
 
 Error buffer_inject_file(Buffer *buffer, const size loc, FILE *file) {
   size flen = 0;
   file_len(file, &flen);
 
-  size old_len = buffer->len;
-  buffer_resize(buffer, buffer->len + flen);
+  if (loc + flen > buffer->len) {
+    buffer_resize(buffer, loc + flen);
+  }
 
   // we can read the file straight into the resized buffer!
-  if (!fread(buffer->data + old_len, flen, 1, file)) {
+  if (!fread(buffer->data + loc, flen, 1, file)) {
     return ERR_READ;
   }
   return OK;
