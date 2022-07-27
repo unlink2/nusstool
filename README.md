@@ -16,9 +16,16 @@ A collection of tools for (n64) rom manipulation
 
 ## Installation
 
+To install nusstool simply obtain a C compiler and make.
+Then simply run `make`.
+To run tests execute `make test`.
 
 ## Usage
 
+Nusstool has a simple command line interface.
+Simply get started by running `nusstool --help`.
+Nusstool commands can be chained via pipes to allow mutually
+exclusive operations to run.
 
 ## License
 
