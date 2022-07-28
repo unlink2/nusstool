@@ -15,6 +15,9 @@ typedef size_t size;
 
 typedef u8 bool;
 
+typedef float f32;
+typedef double f64;
+
 #define TRUE 1
 #define FALSE 0
 
