@@ -79,26 +79,26 @@ static struct argp_option options[] = {
 enum OperationKind { NONE, PAD_TO, PAD_BY, SET, INJECT_FILE, INJECT };
 
 struct Inject {
-  size at;
+  usize at;
   char *data;
 };
 
 struct InjectFile {
-  size at;
+  usize at;
   char *path;
 };
 
 struct PadTo {
-  size to;
+  usize to;
 };
 
 struct PadBy {
-  size by;
+  usize by;
 };
 
 struct Set {
-  size at;
-  size len;
+  usize at;
+  usize len;
   u8 val;
 };
 
@@ -358,7 +358,7 @@ int main(int argc, char **argv) {
     }
     if (arguments.nus_title) {
       memset(header.title, 0, NUS_TITLE_LEN);
-      size len = MIN(NUS_TITLE_LEN, strlen(arguments.nus_title));
+      usize len = MIN(NUS_TITLE_LEN, strlen(arguments.nus_title));
       strncpy(header.title, arguments.nus_title, len);
     }
 

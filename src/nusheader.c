@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 
 void nus_add_header(Buffer *buffer) {
-  size old_len = buffer->len;
+  usize old_len = buffer->len;
   u8 *old_data = buffer->data;
 
   buffer->len += NUS_HEADER_SIZE;
@@ -34,7 +34,7 @@ void nus_fprint(FILE *file, const NusHeader *header) {
   fprintf(file, "title: ");
   // because the title may not be \0 terminated we need to
   // make sure to avoid an overrun
-  for (size i = 0; i < NUS_TITLE_LEN && header->title[i] != '\0'; i++) {
+  for (usize i = 0; i < NUS_TITLE_LEN && header->title[i] != '\0'; i++) {
     fprintf(file, "%c", header->title[i]);
   }
   fprintf(file, "\n");
@@ -54,11 +54,11 @@ void nus_init(NusHeader *header) {
   header->destination = 'A';
 }
 
-u32 ntohl_from_(const u8 *data, size offset) {
+u32 ntohl_from_(const u8 *data, usize offset) {
   return ntohl(*((u32 *)(data + offset)));
 }
 
-Error nus_from_bytes(NusHeader *header, const u8 *data, const size len) {
+Error nus_from_bytes(NusHeader *header, const u8 *data, const usize len) {
   if (len < NUS_HEADER_SIZE) {
     return ERR_HEADER_NOT_ENOUGH_DATA;
   }
@@ -95,7 +95,7 @@ Error nus_from_bytes(NusHeader *header, const u8 *data, const size len) {
 }
 
 // writes a BE u32 to result at offset
-void htonl_to_(u32 n, u8 *result, const size offset) {
+void htonl_to_(u32 n, u8 *result, const usize offset) {
   n = htonl(n);
   memcpy(result + offset, &n, sizeof(u32));
 }
@@ -121,7 +121,7 @@ void nus_to_bytes(NusHeader *header, u8 *result) {
   result[0x3F] = header->version;
 }
 
-Error calc_crc_(const u8 *data, const size len, NusCrc *crc) {
+Error calc_crc_(const u8 *data, const usize len, NusCrc *crc) {
   // this is just some magic number used as an initial value
   const u32 INITIAL = -120959524;
 
@@ -173,7 +173,7 @@ Error calc_crc_(const u8 *data, const size len, NusCrc *crc) {
   return OK;
 }
 
-Error nus_crc(NusHeader *header, const u8 *data, const size len) {
+Error nus_crc(NusHeader *header, const u8 *data, const usize len) {
   NusCrc result;
   Error err = calc_crc_(data, len, &result);
 

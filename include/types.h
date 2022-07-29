@@ -11,7 +11,7 @@ typedef unsigned int u32;
 typedef int i32;
 typedef unsigned long long u64;
 typedef long long i64;
-typedef size_t size;
+typedef size_t usize;
 
 typedef u8 bool;
 

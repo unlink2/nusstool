@@ -49,10 +49,10 @@ void nus_fprint(FILE *file, const NusHeader *header);
 
 void nus_init(NusHeader *header);
 
-Error nus_from_bytes(NusHeader *header, const u8 *data, const size len);
+Error nus_from_bytes(NusHeader *header, const u8 *data, const usize len);
 void nus_to_bytes(NusHeader *header, u8 *result);
 
-Error nus_crc(NusHeader *header, const u8 *data, const size len);
+Error nus_crc(NusHeader *header, const u8 *data, const usize len);
 
 #ifdef TEST
 
