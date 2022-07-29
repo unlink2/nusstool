@@ -2,7 +2,9 @@
 /**
  * When built without test
  */
+#include "cfg.h"
 #include "nusstool.h"
+#include "nususb.h"
 #include <string.h>
 #ifndef TEST
 
@@ -44,6 +46,8 @@ enum ArgpKeys {
   NUS_UNIQUE,
   NUS_DESTINATION,
   NUS_VERSION,
+  NUS_BOOT,
+  NUS_LOAD,
 };
 
 static struct argp_option options[] = {
@@ -64,6 +68,7 @@ static struct argp_option options[] = {
     {"by", BY, "OFFSET", 0, "PAD_BY offset"},
     {"val", VAL, "BYTE", 0, "SET value"},
     {"len", LEN, "OFFSET", 0, "SET length"},
+    {"verbose", 'v', NULL, 0, "Enable output"},
 
     {"nustitle", NUS_TITLE, "TITLE", 0, ""},
     {"nusboot", NUS_BOOT_ADDR, "ADDRESS", 0, ""},
@@ -74,9 +79,20 @@ static struct argp_option options[] = {
     {"nusdest", NUS_DESTINATION, "DESTINATION", 0, ""},
     {"nusuniq", NUS_UNIQUE, "UNIQUE", 0, ""},
     {"nusver", NUS_VERSION, "VERSION", 0, ""},
+    {"nuswriteusb", NUS_LOAD, NULL, 0, "Load via usb"},
+    {"nusbootusb", NUS_BOOT, NULL, 0, "Boot via usb"},
     {0}};
 
-enum OperationKind { NONE, PAD_TO, PAD_BY, SET, INJECT_FILE, INJECT };
+enum OperationKind {
+  NONE,
+  PAD_TO,
+  PAD_BY,
+  SET,
+  INJECT_FILE,
+  INJECT,
+  NUSBOOT,
+  NUSLOAD
+};
 
 struct Inject {
   usize at;
@@ -144,6 +160,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case 'i':
     arguments->input_file = arg;
+    break;
+  case 'v':
+    nuss_verbose = 1;
     break;
 
   case PNUSH:
@@ -258,6 +277,12 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
       argp_usage(state); // NOLINT
     }
     break;
+  case NUS_BOOT:
+    arguments->op_kind = NUSBOOT;
+    break;
+  case NUS_LOAD:
+    arguments->op_kind = NUSLOAD;
+    break;
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -317,6 +342,16 @@ int main(int argc, char **argv) {
     buffer_inject(&buffer, arguments.op.inject.at,
                   (u8 *)arguments.op.inject.data,
                   strlen(arguments.op.inject.data));
+    break;
+  case NUSBOOT:
+    if (nus_usb_boot(&buffer)) {
+      fprintf(stderr, "boot failed\n");
+    }
+    break;
+  case NUSLOAD:
+    if (nus_usb_load(&buffer)) {
+      fprintf(stderr, "load failed\n");
+    }
     break;
   }
 
