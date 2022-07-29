@@ -2,11 +2,8 @@
 /**
  * When built without test
  */
-#include "buffer.h"
-#include "types.h"
-#include "nusheader.h"
+#include "nusstool.h"
 #include <string.h>
-#include "macros.h"
 #ifndef TEST
 
 /// only use main if binary
