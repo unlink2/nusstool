@@ -236,13 +236,12 @@ Error nus_usb_write(Buffer *buffer, u32 addr, char command) {
   return OK;
 }
 
-
 Error nus_usb_load(Buffer *buffer, u32 addr) {
   if (addr == 0) {
     addr = NUS_ROM_BASE_ADDRESS;
   }
 
-  return nus_usb_write(buffer, addr, 'R');
+  return nus_usb_write(buffer, addr, 'W');
 }
 
 Error nus_usb_read(Buffer *buffer, u32 addr, char command) {
@@ -295,12 +294,12 @@ Error nus_usb_dump(Buffer *buffer, u32 addr) {
   return nus_usb_read(buffer, addr, 'R');
 }
 
-Error nus_usb_ram_wr(Buffer *buffer, u32 addr) { 
+Error nus_usb_ram_wr(Buffer *buffer, u32 addr) {
   if (addr == 0) {
     addr = NUS_RAM_BASE_ADDRESS;
   }
-  return nus_usb_write(buffer, addr, 'w'); }
-
+  return nus_usb_write(buffer, addr, 'w');
+}
 
 Error nus_usb_ram_rd(Buffer *buffer, u32 addr) {
   if (addr == 0) {
