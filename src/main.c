@@ -341,6 +341,11 @@ int main(int argc, char **argv) {
     in = fopen(arguments.input_file, "re");
   }
 
+  if (out == NULL || in == NULL) {
+    fprintf(stderr, "Unable to open file\n");
+    return -1;
+  }
+
   // all actions are applied to the buffer which is read here
   Buffer buffer;
   buffer_init(&buffer);
