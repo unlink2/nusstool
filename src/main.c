@@ -413,12 +413,12 @@ int main(int argc, char **argv) {
     break;
   case NUSRAMWR:
     if ((exit_code = nus_usb_ram_wr(&buffer, arguments.addr)) && nuss_verbose) {
-      fprintf(stderr, "dump failed\n");
+      fprintf(stderr, "write failed\n");
     }
     break;
   case NUSRAMRD:
     if ((exit_code = nus_usb_ram_rd(&buffer, arguments.addr)) && nuss_verbose) {
-      fprintf(stderr, "dump failed\n");
+      fprintf(stderr, "read failed\n");
     }
     break;
   }
