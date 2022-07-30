@@ -9,6 +9,7 @@ typedef enum Error {
   ERR_HEADER_NOT_ENOUGH_DATA,
   ERR_READ,
   ERR_WRITE,
+  ERR_NUS_USB
 } Error;
 
 void error_fprint(FILE *file, Error error);

@@ -2,7 +2,9 @@
 /**
  * When built without test
  */
+#include "cfg.h"
 #include "nusstool.h"
+#include "nususb.h"
 #include <string.h>
 #ifndef TEST
 
@@ -34,6 +36,7 @@ enum ArgpKeys {
   TO,
   VAL,
   LEN,
+  ADDR,
 
   NUS_TITLE,
   NUS_BOOT_ADDR,
@@ -44,11 +47,16 @@ enum ArgpKeys {
   NUS_UNIQUE,
   NUS_DESTINATION,
   NUS_VERSION,
+  NUS_BOOT,
+  NUS_LOAD,
+  NUS_DUMP,
 };
 
 static struct argp_option options[] = {
-    {"output", 'o', "FILE", 0, "Output to FILE instead of standard output"},
-    {"input", 'i', "FILE", 0, "Input from FILE instead of standard input"},
+    {"output", 'o', "FILE", 0,
+     "Output to FILE instead of standard output (- for no output)"},
+    {"input", 'i', "FILE", 0,
+     "Input from FILE instead of standard input (- for no input)"},
     {"nusph", PNUSH, NULL, 0, "Print the nus-header of the input file"},
     {"nusaddh", ADDNUSH, NULL, 0, "Add space for a nus header to the buffer"},
     {"nusseth", SETNUSH, NULL, 0, "Calculate the nus crc"},
@@ -64,6 +72,9 @@ static struct argp_option options[] = {
     {"by", BY, "OFFSET", 0, "PAD_BY offset"},
     {"val", VAL, "BYTE", 0, "SET value"},
     {"len", LEN, "OFFSET", 0, "SET length"},
+    {"verbose", 'v', NULL, 0, "Enable output"},
+    {"bl", 'B', "OFFSET", 0, "Set buffer lenght"},
+    {"addr", 'A', "OFFSET", 0, "Set address for usb operations"},
 
     {"nustitle", NUS_TITLE, "TITLE", 0, ""},
     {"nusboot", NUS_BOOT_ADDR, "ADDRESS", 0, ""},
@@ -74,9 +85,23 @@ static struct argp_option options[] = {
     {"nusdest", NUS_DESTINATION, "DESTINATION", 0, ""},
     {"nusuniq", NUS_UNIQUE, "UNIQUE", 0, ""},
     {"nusver", NUS_VERSION, "VERSION", 0, ""},
+    {"nuswriteusb", NUS_LOAD, NULL, 0, "Load via usb"},
+    {"nusbootusb", NUS_BOOT, NULL, 0, "Boot via usb"},
+    {"nusdumpusb", NUS_DUMP, NULL, 0,
+     "Dump data over usb. Data is read into the buffer until it is filled"},
     {0}};
 
-enum OperationKind { NONE, PAD_TO, PAD_BY, SET, INJECT_FILE, INJECT };
+enum OperationKind {
+  NONE,
+  PAD_TO,
+  PAD_BY,
+  SET,
+  INJECT_FILE,
+  INJECT,
+  NUSBOOT,
+  NUSLOAD,
+  NUSDUMP
+};
 
 struct Inject {
   usize at;
@@ -114,10 +139,14 @@ struct Arguments {
   char *output_file;
   char *input_file;
 
+  usize buffer_len;
+  u32 addr;
+
   bool pnush;
   bool addnush;
   bool setnush;
   bool dry;
+  bool noinput;
 
   char *nus_title;
   char *nus_boot_addr;
@@ -145,7 +174,15 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case 'i':
     arguments->input_file = arg;
     break;
-
+  case 'v':
+    nuss_verbose = 1;
+    break;
+  case 'B':
+    arguments->buffer_len = atoi(arg);
+    break;
+  case 'A':
+    arguments->addr = atoi(arg);
+    break;
   case PNUSH:
     arguments->pnush = TRUE;
     break;
@@ -258,6 +295,15 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
       argp_usage(state); // NOLINT
     }
     break;
+  case NUS_BOOT:
+    arguments->op_kind = NUSBOOT;
+    break;
+  case NUS_LOAD:
+    arguments->op_kind = NUSLOAD;
+    break;
+  case NUS_DUMP:
+    arguments->op_kind = NUSDUMP;
+    break;
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -267,6 +313,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 static struct argp argp = {options, parse_opt, args_doc, doc};
 
 int main(int argc, char **argv) {
+  int exit_code = 0;
+
   struct Arguments arguments;
   memset(&arguments, 0, sizeof(struct Arguments));
 
@@ -279,17 +327,35 @@ int main(int argc, char **argv) {
 
   argp_parse(&argp, argc, argv, 0, 0, &arguments); // NOLINT
 
-  if (arguments.output_file) {
+  if (arguments.input_file && strncmp(arguments.input_file, "-", 1) == 0) {
+    arguments.noinput = TRUE;
+  }
+  if (arguments.output_file && strncmp(arguments.output_file, "-", 1) == 0) {
+    arguments.dry = TRUE;
+  }
+
+  if (arguments.output_file && !arguments.dry) {
     out = fopen(arguments.output_file, "we");
   }
-  if (arguments.input_file) {
+  if (arguments.input_file && !arguments.noinput) {
     in = fopen(arguments.input_file, "re");
+  }
+
+  if (out == NULL || in == NULL) {
+    fprintf(stderr, "Unable to open file\n");
+    return -1;
   }
 
   // all actions are applied to the buffer which is read here
   Buffer buffer;
   buffer_init(&buffer);
-  buffer_read(&buffer, in);
+  if (!arguments.noinput) {
+    buffer_read(&buffer, in);
+  }
+
+  if (buffer.len < arguments.buffer_len) {
+    buffer_pad_to(&buffer, arguments.buffer_len, 0);
+  }
 
   switch (arguments.op_kind) {
   case NONE:
@@ -317,6 +383,21 @@ int main(int argc, char **argv) {
     buffer_inject(&buffer, arguments.op.inject.at,
                   (u8 *)arguments.op.inject.data,
                   strlen(arguments.op.inject.data));
+    break;
+  case NUSBOOT:
+    if ((exit_code = nus_usb_boot(&buffer)) && nuss_verbose) {
+      fprintf(stderr, "boot failed\n");
+    }
+    break;
+  case NUSLOAD:
+    if ((exit_code = nus_usb_load(&buffer, arguments.addr)) && nuss_verbose) {
+      fprintf(stderr, "load failed\n");
+    }
+    break;
+  case NUSDUMP:
+    if ((exit_code = nus_usb_dump(&buffer, arguments.addr)) && nuss_verbose) {
+      fprintf(stderr, "dump failed\n");
+    }
     break;
   }
 
@@ -383,7 +464,7 @@ int main(int argc, char **argv) {
     fclose(in);
   }
 
-  return 0;
+  return exit_code;
 }
 
 #endif
