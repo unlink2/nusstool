@@ -50,6 +50,8 @@ enum ArgpKeys {
   NUS_BOOT,
   NUS_LOAD,
   NUS_DUMP,
+  NUS_RAM_WR,
+  NUS_RAM_RD,
 };
 
 static struct argp_option options[] = {
@@ -89,6 +91,8 @@ static struct argp_option options[] = {
     {"nusbootusb", NUS_BOOT, NULL, 0, "Boot via usb"},
     {"nusdumpusb", NUS_DUMP, NULL, 0,
      "Dump data over usb. Data is read into the buffer until it is filled"},
+    {"nuswrusb", NUS_RAM_WR, NULL, 0, "Write buffer to ram"},
+    {"nusrdusb", NUS_RAM_RD, NULL, 0, "Read buffer from ram"},
     {0}};
 
 enum OperationKind {
@@ -100,7 +104,9 @@ enum OperationKind {
   INJECT,
   NUSBOOT,
   NUSLOAD,
-  NUSDUMP
+  NUSDUMP,
+  NUSRAMRD,
+  NUSRAMWR
 };
 
 struct Inject {
@@ -304,6 +310,12 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case NUS_DUMP:
     arguments->op_kind = NUSDUMP;
     break;
+  case NUS_RAM_WR:
+    arguments->op_kind = NUSRAMWR;
+    break;
+  case NUS_RAM_RD:
+    arguments->op_kind = NUSRAMRD;
+    break;
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -396,6 +408,16 @@ int main(int argc, char **argv) {
     break;
   case NUSDUMP:
     if ((exit_code = nus_usb_dump(&buffer, arguments.addr)) && nuss_verbose) {
+      fprintf(stderr, "dump failed\n");
+    }
+    break;
+  case NUSRAMWR:
+    if ((exit_code = nus_usb_ram_wr(&buffer, arguments.addr)) && nuss_verbose) {
+      fprintf(stderr, "dump failed\n");
+    }
+    break;
+  case NUSRAMRD:
+    if ((exit_code = nus_usb_ram_rd(&buffer, arguments.addr)) && nuss_verbose) {
       fprintf(stderr, "dump failed\n");
     }
     break;
