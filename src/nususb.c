@@ -173,19 +173,15 @@ Error nus_usb_boot() {
   return OK;
 }
 
-Error nus_usb_load(Buffer *buffer, u32 addr) {
+Error nus_usb_write(Buffer *buffer, u32 addr, char command) {
   struct ftdi_context *ftdi = NULL;
   if (usb_init(&ftdi)) {
     return ERR_NUS_USB;
   }
 
-  if (addr == 0) {
-    addr = NUS_ROM_BASE_ADDRESS;
-  }
-
   // test size and fill if needed
   const u32 crc_area = 0x100000 + 4096;
-  if (buffer->len < crc_area) {
+  if (buffer->len < crc_area && command == 'W') {
     if (nuss_verbose) {
       fprintf(stderr, "Filling rom space...\n");
     }
@@ -201,7 +197,7 @@ Error nus_usb_load(Buffer *buffer, u32 addr) {
   // init write
   // The upload is offset by 496 because we do not start data transfer with this
   // packet, but with the packet after!
-  command_setup('W', addr, buffer->len, 0);
+  command_setup(command, addr, buffer->len, 0);
   ftdi_write_data(ftdi, write_buffer, 16);
 
   const usize block_size = 0x8000;
@@ -240,16 +236,21 @@ Error nus_usb_load(Buffer *buffer, u32 addr) {
   return OK;
 }
 
-Error nus_usb_dump(Buffer *buffer, u32 addr) {
+Error nus_usb_load(Buffer *buffer, u32 addr) {
+  if (addr == 0) {
+    addr = NUS_ROM_BASE_ADDRESS;
+  }
+
+  return nus_usb_write(buffer, addr, 'W');
+}
+
+Error nus_usb_read(Buffer *buffer, u32 addr, char command) {
   struct ftdi_context *ftdi = NULL;
   if (usb_init(&ftdi)) {
     return ERR_NUS_USB;
   }
 
   // init read
-  if (addr == 0) {
-    addr = NUS_ROM_BASE_ADDRESS;
-  }
 
   const usize block_size = 0x256;
   if (nuss_verbose) {
@@ -262,7 +263,7 @@ Error nus_usb_dump(Buffer *buffer, u32 addr) {
   u32 amount = 0;
   for (usize read = 0; read < buffer->len; read += amount) { // NOLINT
     i32 size = MIN(block_size, buffer->len - read);
-    command_setup('R', addr + read, size, 0);
+    command_setup(command, addr + read, size, 0);
     command_send_(ftdi);
 
     amount = ftdi_read_data(ftdi, buffer->data + read, size);
@@ -286,6 +287,27 @@ Error nus_usb_dump(Buffer *buffer, u32 addr) {
   return OK;
 }
 
+Error nus_usb_dump(Buffer *buffer, u32 addr) {
+  if (addr == 0) {
+    addr = NUS_ROM_BASE_ADDRESS;
+  }
+  return nus_usb_read(buffer, addr, 'R');
+}
+
+Error nus_usb_ram_wr(Buffer *buffer, u32 addr) {
+  if (addr == 0) {
+    addr = NUS_RAM_BASE_ADDRESS;
+  }
+  return nus_usb_write(buffer, addr, 'w');
+}
+
+Error nus_usb_ram_rd(Buffer *buffer, u32 addr) {
+  if (addr == 0) {
+    addr = NUS_RAM_BASE_ADDRESS;
+  }
+  return nus_usb_read(buffer, addr, 'r');
+}
+
 #else
 
 Error nus_usb_boot() {
@@ -298,5 +320,8 @@ Error nus_usb_boot() {
 Error nus_usb_load(Buffer *buffer, u32 addr) { return nus_usb_boot(); }
 
 Error nus_usb_dump(Buffer *buffer, u32 addr) { return nus_usb_boot(); }
+
+Error nus_usb_ram_wr(Buffer *buffer, u32 addr) { return nus_usb_boot(); }
+Error nus_usb_ram_rd(Buffer *buffer, u32 addr) { return nus_usb_boot(); }
 
 #endif

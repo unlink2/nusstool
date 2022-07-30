@@ -12,5 +12,7 @@
 Error nus_usb_boot();
 Error nus_usb_load(Buffer *buffer, u32 addr);
 Error nus_usb_dump(Buffer *buffer, u32 addr);
+Error nus_usb_ram_wr(Buffer *buffer, u32 addr);
+Error nus_usb_ram_rd(Buffer *buffer, u32 addr);
 
 #endif
