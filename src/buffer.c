@@ -8,7 +8,7 @@ void buffer_init(Buffer *buffer) {
   buffer->len = 0;
 }
 
-Error file_len(FILE *file, size *len) {
+Error file_len(FILE *file, usize *len) {
   if (!fseek(file, 0, SEEK_END)) {
     return ERR_READ;
   }
@@ -22,8 +22,8 @@ Error file_len(FILE *file, size *len) {
 }
 
 Error buffer_read(Buffer *buffer, FILE *file) {
-  size flen = 524288; // start at 0.5mb
-  size total_read = 0;
+  usize flen = 524288; // start at 0.5mb
+  usize total_read = 0;
 
   buffer->data = malloc(flen + 1);
   buffer->len = flen;
@@ -57,29 +57,29 @@ Error buffer_write(const Buffer *buffer, FILE *file) {
   return OK;
 }
 
-void buffer_pad_to(Buffer *buffer, const size len, const u8 val) {
+void buffer_pad_to(Buffer *buffer, const usize len, const u8 val) {
   // if we already have the desired size dont do anything
   if (len <= buffer->len) {
     return;
   }
 
-  size old_len = buffer->len;
+  usize old_len = buffer->len;
   buffer_resize(buffer, len);
 
   // memset the rest of the buffer to the desired value
   memset(buffer->data + old_len, (int)(buffer->len - old_len), val);
 }
 
-void buffer_pad_by(Buffer *buffer, const size len, const u8 val) {
-  size old_len = buffer->len;
+void buffer_pad_by(Buffer *buffer, const usize len, const u8 val) {
+  usize old_len = buffer->len;
   buffer_resize(buffer, buffer->len + len);
 
   // memset the rest of the buffer to the destired value
   memset(buffer->data + old_len, (int)len, val);
 }
 
-void buffer_inject(Buffer *buffer, const size loc, const u8 *data,
-                   const size len) {
+void buffer_inject(Buffer *buffer, const usize loc, const u8 *data,
+                   const usize len) {
   if (loc + len > buffer->len) {
     buffer_resize(buffer, loc + len);
   }
@@ -88,7 +88,7 @@ void buffer_inject(Buffer *buffer, const size loc, const u8 *data,
   memcpy(buffer->data + loc, data, len);
 }
 
-void buffer_set(Buffer *buffer, const size loc, const u8 val, const u8 len) {
+void buffer_set(Buffer *buffer, const usize loc, const u8 val, const u8 len) {
   if (loc + len > buffer->len) {
     buffer_resize(buffer, loc + len);
   }
@@ -97,8 +97,8 @@ void buffer_set(Buffer *buffer, const size loc, const u8 val, const u8 len) {
   memset(buffer->data + loc, val, len);
 }
 
-Error buffer_inject_file(Buffer *buffer, const size loc, FILE *file) {
-  size flen = 0;
+Error buffer_inject_file(Buffer *buffer, const usize loc, FILE *file) {
+  usize flen = 0;
   file_len(file, &flen);
 
   if (loc + flen > buffer->len) {
@@ -112,7 +112,7 @@ Error buffer_inject_file(Buffer *buffer, const size loc, FILE *file) {
   return OK;
 }
 
-void buffer_resize(Buffer *buffer, const size new_len) {
+void buffer_resize(Buffer *buffer, const usize new_len) {
   if (new_len < buffer->len) {
     return;
   }

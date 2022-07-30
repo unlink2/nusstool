@@ -34,9 +34,10 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 # The -MMD and -MP flags together generate Makefiles for us!
 # These files will have .d instead of .o as the output.
-CFLAGS := $(INC_FLAGS) -MMD -MP -Wall -Wpedantic -g $(EX_CC_FLAGS) -DTYPE=$(TYPE) -std=c99
+CFLAGS := $(INC_FLAGS) -MMD -MP -Wall -Wpedantic -g $(EX_CC_FLAGS) -DTYPE=$(TYPE) -std=c99 
 
-LDFLAGS := $(EX_LD_FLAGS)
+# remove reference to lftdi1 if feature is not wanted 
+LDFLAGS := $(EX_LD_FLAGS) -lftdi1 
 
 # The final build step.
 # This builds a binary, shared or static library
