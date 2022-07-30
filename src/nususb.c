@@ -24,7 +24,7 @@
 u8 write_buffer[NUS_USB_BUF_LEN];
 u8 read_buffer[NUS_USB_BUF_LEN];
 
-void setup_command(char cmd, u32 address, u32 len, u32 argument) {
+void command_setup(char cmd, u32 address, u32 len, u32 argument) {
   memcpy(write_buffer, "cmdW", 5);
   write_buffer[0] = 'c';
   write_buffer[1] = 'm';
@@ -36,6 +36,7 @@ void setup_command(char cmd, u32 address, u32 len, u32 argument) {
             address, len, argument);
   }
 
+  // convert to big endian (network) byte order
   address = htonl(address);
   len = htonl(len / 0x200); // take buffer size into account
   argument = htonl(argument);
@@ -44,7 +45,7 @@ void setup_command(char cmd, u32 address, u32 len, u32 argument) {
   memcpy(&write_buffer[12], &argument, sizeof(u32));
 }
 
-usize send_command_(struct ftdi_context *ftdi) {
+usize command_send_(struct ftdi_context *ftdi) {
   usize write_amount = ftdi_write_data(ftdi, write_buffer, NUS_USB_BUF_LEN);
 
   if (nuss_verbose) {
@@ -61,8 +62,8 @@ usize send_command_(struct ftdi_context *ftdi) {
 
 Error usb_test(struct ftdi_context *ftdi) {
   // test connection
-  setup_command('t', 0, 0, 0);
-  send_command_(ftdi);
+  command_setup('t', 0, 0, 0);
+  command_send_(ftdi);
   // test command should return k or r (r is newer)
   if (read_buffer[3] == 'k' || read_buffer[3] == 'r') {
     if (nuss_verbose) {
@@ -146,8 +147,8 @@ Error nus_usb_boot() {
   }
 
   // put it into pif boot mode
-  setup_command('s', NUS_ROM_BASE_ADDRESS, 0, 1);
-  send_command_(ftdi);
+  command_setup('s', 0, 0, 1);
+  command_send_(ftdi);
 
   // free ftdi
   if (usb_free(ftdi)) {
@@ -170,8 +171,8 @@ Error nus_usb_load(Buffer *buffer) {
       fprintf(stderr, "Filling rom space...\n");
     }
 
-    setup_command('f', NUS_ROM_BASE_ADDRESS, crc_area, 0);
-    send_command_(ftdi);
+    command_setup('f', NUS_ROM_BASE_ADDRESS, crc_area, 0);
+    command_send_(ftdi);
 
     if (usb_test(ftdi)) {
       return ERR_NUS_USB;
@@ -179,19 +180,22 @@ Error nus_usb_load(Buffer *buffer) {
   }
 
   // init write
-  setup_command('W', NUS_ROM_BASE_ADDRESS, buffer->len, 0);
-  send_command_(ftdi);
+  command_setup('W', NUS_ROM_BASE_ADDRESS, buffer->len, 0);
+  command_send_(ftdi);
 
+  const usize block_size = 0x8000;
   if (nuss_verbose) {
-    fprintf(stderr, "Write mode...\n");
+    fprintf(stderr, "Writing %li bytes with block size %ld...\n", buffer->len,
+            block_size);
   }
 
-  const usize step = 0x8000;
-  for (usize sent = 0; sent < buffer->len; sent += step) { // NOLINT
-    u32 amount = ftdi_write_data(ftdi, buffer->data + sent,
-                                 MIN(step, buffer->len - sent));
+  u32 amount = 0;
+  for (usize sent = 0; sent < buffer->len; sent += amount) { // NOLINT
+    amount = ftdi_write_data(ftdi, buffer->data + sent,
+                             MIN(block_size, buffer->len - sent));
     if (amount > 0 && nuss_verbose) {
-      fprintf(stderr, "sent %li/%li bytes\n", amount + sent, buffer->len);
+      fprintf(stderr, "sent %d bytes - %li/%li bytes\n", amount, amount + sent,
+              buffer->len);
     } else {
       if (nuss_verbose) {
         fprintf(stderr, "send timeout!\n");
