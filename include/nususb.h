@@ -10,7 +10,7 @@
 // #define NO_NUSUSB
 
 Error nus_usb_boot();
-Error nus_usb_load(Buffer *buffer);
-Error nus_usb_dump(Buffer *buffer);
+Error nus_usb_load(Buffer *buffer, u32 addr);
+Error nus_usb_dump(Buffer *buffer, u32 addr);
 
 #endif

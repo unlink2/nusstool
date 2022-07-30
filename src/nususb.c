@@ -3,8 +3,11 @@
 #include "error.h"
 #include "macros.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #ifndef NO_NUSUSB
 
@@ -15,7 +18,7 @@
 #define NUS_USB_READ_TIMEOUT 5000
 #define NUS_USB_WRITE_TIMEOUT 5000
 #define BUFFER_SIZE 1024
-#define NUS_BAUD 115200
+#define NUS_BAUD 9600
 #define NUS_USB_BUF_LEN 512
 
 #define NUS_ROM_BASE_ADDRESS 0x10000000
@@ -32,13 +35,16 @@ void command_setup(char cmd, u32 address, u32 len, u32 argument) {
   write_buffer[3] = cmd;
 
   if (nuss_verbose) {
-    fprintf(stderr, "sending command '%c' to address %x len %d arg %d\n", cmd,
+    fprintf(stderr, "sending command '%c' to address 0x%x len %d arg %d\n", cmd,
             address, len, argument);
   }
 
   // convert to big endian (network) byte order
   address = htonl(address);
-  len = htonl(len / 0x200); // take buffer size into account
+  if (len != 0) {
+    len = htonl(MAX(len, NUS_USB_BUF_LEN) /
+                0x200); // take buffer size into account
+  }
   argument = htonl(argument);
   memcpy(&write_buffer[4], &address, sizeof(u32));
   memcpy(&write_buffer[8], &len, sizeof(u32));
@@ -65,24 +71,27 @@ usize response_read(struct ftdi_context *ftdi) {
 }
 
 Error usb_test(struct ftdi_context *ftdi) {
-  // test connection
-  command_setup('t', 0, 0, 0);
-  command_send_(ftdi);
-  response_read(ftdi);
+  // retry test
+  for (u32 i = 0; i < 3; i++) {
+    // test connection
+    command_setup('t', 0, 0, 0);
+    command_send_(ftdi);
+    response_read(ftdi);
 
-  // test command should return k or r (r is newer)
-  if (read_buffer[3] == 'k' || read_buffer[3] == 'r') {
-    if (nuss_verbose) {
-      printf("init test: ok\n");
+    // test command should return k or r (r is newer)
+    if (read_buffer[3] == 'k' || read_buffer[3] == 'r') {
+      if (nuss_verbose) {
+        printf("init test: ok\n");
+      }
+      return OK;
+    } else {
+      if (nuss_verbose) {
+        fprintf(stderr, "Init test failed!\n");
+      }
     }
-  } else {
-    if (nuss_verbose) {
-      fprintf(stderr, "Init test failed!\n");
-    }
-    ftdi_free(ftdi);
-    return ERR_NUS_USB;
   }
-  return OK;
+  ftdi_free(ftdi);
+  return ERR_NUS_USB;
 }
 
 Error usb_init(struct ftdi_context **ftdi) {
@@ -164,10 +173,14 @@ Error nus_usb_boot() {
   return OK;
 }
 
-Error nus_usb_load(Buffer *buffer) {
+Error nus_usb_load(Buffer *buffer, u32 addr) {
   struct ftdi_context *ftdi = NULL;
   if (usb_init(&ftdi)) {
     return ERR_NUS_USB;
+  }
+
+  if (addr == 0) {
+    addr = NUS_ROM_BASE_ADDRESS;
   }
 
   // test size and fill if needed
@@ -177,7 +190,7 @@ Error nus_usb_load(Buffer *buffer) {
       fprintf(stderr, "Filling rom space...\n");
     }
 
-    command_setup('f', NUS_ROM_BASE_ADDRESS, crc_area, 0);
+    command_setup('c', addr, MAX(crc_area, buffer->len), 0);
     command_send_(ftdi);
 
     if (usb_test(ftdi)) {
@@ -186,8 +199,10 @@ Error nus_usb_load(Buffer *buffer) {
   }
 
   // init write
-  command_setup('W', NUS_ROM_BASE_ADDRESS, buffer->len, 0);
-  command_send_(ftdi);
+  // The upload is offset by 496 because we do not start data transfer with this
+  // packet, but with the packet after!
+  command_setup('W', addr, buffer->len, 0);
+  ftdi_write_data(ftdi, write_buffer, 16);
 
   const usize block_size = 0x8000;
   if (nuss_verbose) {
@@ -195,14 +210,17 @@ Error nus_usb_load(Buffer *buffer) {
             block_size);
   }
 
+  // TODO maybe verify that the rom is uploaded correcly
+  // all the way! Dumping is pretty slow atm though, no fun at all!
   u32 amount = 0;
   for (usize sent = 0; sent < buffer->len; sent += amount) { // NOLINT
-    amount = ftdi_write_data(ftdi, buffer->data + sent,
-                             MIN(block_size, buffer->len - sent));
+    i32 size = MIN(block_size, buffer->len - sent);
+    amount = ftdi_write_data(ftdi, buffer->data + sent, size);
+
     if (amount > 0 && nuss_verbose) {
       fprintf(stderr, "sent %d bytes - %li/%li bytes\n", amount, amount + sent,
               buffer->len);
-    } else {
+    } else if (amount <= 0) {
       if (nuss_verbose) {
         fprintf(stderr, "send timeout!\n");
       }
@@ -210,6 +228,9 @@ Error nus_usb_load(Buffer *buffer) {
       return ERR_NUS_USB;
     }
   }
+
+  // give the cart some time before continuing
+  sleep(1); // NOLINT
 
   // free ftdi
   if (usb_free(ftdi)) {
@@ -219,32 +240,37 @@ Error nus_usb_load(Buffer *buffer) {
   return OK;
 }
 
-Error nus_usb_dump(Buffer *buffer) {
+Error nus_usb_dump(Buffer *buffer, u32 addr) {
   struct ftdi_context *ftdi = NULL;
   if (usb_init(&ftdi)) {
     return ERR_NUS_USB;
   }
 
+  // init read
+  if (addr == 0) {
+    addr = NUS_ROM_BASE_ADDRESS;
+  }
 
-  // init read 
-  command_setup('R', NUS_ROM_BASE_ADDRESS, buffer->len, 0);
-  command_send_(ftdi);
-
-  const usize block_size = 0x8000;
+  const usize block_size = 0x256;
   if (nuss_verbose) {
     fprintf(stderr, "Reading %li bytes with block size %ld...\n", buffer->len,
             block_size);
   }
 
+  memset(buffer->data, 0, buffer->len);
 
   u32 amount = 0;
   for (usize read = 0; read < buffer->len; read += amount) { // NOLINT
-    amount = ftdi_read_data(ftdi, buffer->data + read,
-                             MIN(block_size, buffer->len - read));
+    i32 size = MIN(block_size, buffer->len - read);
+    command_setup('R', addr + read, size, 0);
+    command_send_(ftdi);
+
+    amount = ftdi_read_data(ftdi, buffer->data + read, size);
+
     if (amount > 0 && nuss_verbose) {
       fprintf(stderr, "read %d bytes - %li/%li bytes\n", amount, amount + read,
               buffer->len);
-    } else {
+    } else if (amount <= 0) {
       if (nuss_verbose) {
         fprintf(stderr, "read timeout!\n");
       }
@@ -257,7 +283,7 @@ Error nus_usb_dump(Buffer *buffer) {
   if (usb_free(ftdi)) {
     return ERR_NUS_USB;
   }
-  return OK; 
+  return OK;
 }
 
 #else
@@ -269,8 +295,8 @@ Error nus_usb_boot() {
   return ERR_NUS_USB;
 }
 
-Error nus_usb_load(Buffer *buffer) { return nus_usb_boot(); }
+Error nus_usb_load(Buffer *buffer, u32 addr) { return nus_usb_boot(); }
 
-Error nus_usb_dump(Buffer *buffer) { return nus_usb_boot(); }
+Error nus_usb_dump(Buffer *buffer, u32 addr) { return nus_usb_boot(); }
 
 #endif
