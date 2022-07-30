@@ -48,11 +48,14 @@ enum ArgpKeys {
   NUS_VERSION,
   NUS_BOOT,
   NUS_LOAD,
+  NUS_DUMP,
 };
 
 static struct argp_option options[] = {
-    {"output", 'o', "FILE", 0, "Output to FILE instead of standard output"},
-    {"input", 'i', "FILE", 0, "Input from FILE instead of standard input"},
+    {"output", 'o', "FILE", 0,
+     "Output to FILE instead of standard output (- for no output)"},
+    {"input", 'i', "FILE", 0,
+     "Input from FILE instead of standard input (- for no input)"},
     {"nusph", PNUSH, NULL, 0, "Print the nus-header of the input file"},
     {"nusaddh", ADDNUSH, NULL, 0, "Add space for a nus header to the buffer"},
     {"nusseth", SETNUSH, NULL, 0, "Calculate the nus crc"},
@@ -69,6 +72,7 @@ static struct argp_option options[] = {
     {"val", VAL, "BYTE", 0, "SET value"},
     {"len", LEN, "OFFSET", 0, "SET length"},
     {"verbose", 'v', NULL, 0, "Enable output"},
+    {"bl", 'B', "OFFSET", 0, "Set buffer lenght"},
 
     {"nustitle", NUS_TITLE, "TITLE", 0, ""},
     {"nusboot", NUS_BOOT_ADDR, "ADDRESS", 0, ""},
@@ -81,6 +85,7 @@ static struct argp_option options[] = {
     {"nusver", NUS_VERSION, "VERSION", 0, ""},
     {"nuswriteusb", NUS_LOAD, NULL, 0, "Load via usb"},
     {"nusbootusb", NUS_BOOT, NULL, 0, "Boot via usb"},
+    {"nusdumpusb", NUS_DUMP, NULL, 0, "Dump data over usb. Data is read into the buffer until it is filled"},
     {0}};
 
 enum OperationKind {
@@ -91,7 +96,8 @@ enum OperationKind {
   INJECT_FILE,
   INJECT,
   NUSBOOT,
-  NUSLOAD
+  NUSLOAD,
+  NUSDUMP 
 };
 
 struct Inject {
@@ -130,10 +136,13 @@ struct Arguments {
   char *output_file;
   char *input_file;
 
+  usize buffer_len;
+
   bool pnush;
   bool addnush;
   bool setnush;
   bool dry;
+  bool noinput;
 
   char *nus_title;
   char *nus_boot_addr;
@@ -164,7 +173,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case 'v':
     nuss_verbose = 1;
     break;
-
+  case 'B':
+    arguments->buffer_len = atoi(arg);
+    break;
   case PNUSH:
     arguments->pnush = TRUE;
     break;
@@ -283,6 +294,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case NUS_LOAD:
     arguments->op_kind = NUSLOAD;
     break;
+  case NUS_DUMP:
+    arguments->op_kind = NUSDUMP;
+    break;
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -292,6 +306,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 static struct argp argp = {options, parse_opt, args_doc, doc};
 
 int main(int argc, char **argv) {
+  int exit_code = 0;
+
   struct Arguments arguments;
   memset(&arguments, 0, sizeof(struct Arguments));
 
@@ -304,17 +320,30 @@ int main(int argc, char **argv) {
 
   argp_parse(&argp, argc, argv, 0, 0, &arguments); // NOLINT
 
-  if (arguments.output_file) {
+  if (arguments.input_file && strncmp(arguments.input_file, "-", 1) == 0) {
+    arguments.noinput = TRUE;
+  }
+  if (arguments.output_file && strncmp(arguments.output_file, "-", 1) == 0) {
+    arguments.dry = TRUE;
+  }
+
+  if (arguments.output_file && !arguments.dry) {
     out = fopen(arguments.output_file, "we");
   }
-  if (arguments.input_file) {
+  if (arguments.input_file && !arguments.noinput) {
     in = fopen(arguments.input_file, "re");
   }
 
   // all actions are applied to the buffer which is read here
   Buffer buffer;
   buffer_init(&buffer);
-  buffer_read(&buffer, in);
+  if (!arguments.noinput) {
+    buffer_read(&buffer, in);
+  }
+
+  if (buffer.len < arguments.buffer_len) {
+    buffer_pad_to(&buffer, arguments.buffer_len, 0);
+  }
 
   switch (arguments.op_kind) {
   case NONE:
@@ -344,14 +373,22 @@ int main(int argc, char **argv) {
                   strlen(arguments.op.inject.data));
     break;
   case NUSBOOT:
-    if (nus_usb_boot(&buffer)) {
+    if (nus_usb_boot(&buffer) && nuss_verbose) {
       fprintf(stderr, "boot failed\n");
     }
+    exit_code = -1;
     break;
   case NUSLOAD:
-    if (nus_usb_load(&buffer)) {
+    if (nus_usb_load(&buffer) && nuss_verbose) {
       fprintf(stderr, "load failed\n");
     }
+    exit_code = -1;
+    break;
+  case NUSDUMP:
+    if (nus_usb_dump(&buffer) && nuss_verbose) {
+      fprintf(stderr, "dump failed\n");
+    }
+    exit_code = -1;
     break;
   }
 
@@ -418,7 +455,7 @@ int main(int argc, char **argv) {
     fclose(in);
   }
 
-  return 0;
+  return exit_code;
 }
 
 #endif

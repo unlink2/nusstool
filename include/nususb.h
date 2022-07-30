@@ -11,5 +11,6 @@
 
 Error nus_usb_boot();
 Error nus_usb_load(Buffer *buffer);
+Error nus_usb_dump(Buffer *buffer);
 
 #endif

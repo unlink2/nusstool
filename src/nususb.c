@@ -51,19 +51,25 @@ usize command_send_(struct ftdi_context *ftdi) {
   if (nuss_verbose) {
     fprintf(stderr, "sent %li bytes\n", write_amount);
   }
+
+  return write_amount;
+}
+
+usize response_read(struct ftdi_context *ftdi) {
   usize read_amount = ftdi_read_data(ftdi, read_buffer, NUS_USB_BUF_LEN);
 
   if (nuss_verbose) {
     fprintf(stderr, "read %li bytes\n", read_amount);
   }
-
-  return write_amount;
+  return read_amount;
 }
 
 Error usb_test(struct ftdi_context *ftdi) {
   // test connection
   command_setup('t', 0, 0, 0);
   command_send_(ftdi);
+  response_read(ftdi);
+
   // test command should return k or r (r is newer)
   if (read_buffer[3] == 'k' || read_buffer[3] == 'r') {
     if (nuss_verbose) {
@@ -213,6 +219,47 @@ Error nus_usb_load(Buffer *buffer) {
   return OK;
 }
 
+Error nus_usb_dump(Buffer *buffer) {
+  struct ftdi_context *ftdi = NULL;
+  if (usb_init(&ftdi)) {
+    return ERR_NUS_USB;
+  }
+
+
+  // init read 
+  command_setup('R', NUS_ROM_BASE_ADDRESS, buffer->len, 0);
+  command_send_(ftdi);
+
+  const usize block_size = 0x8000;
+  if (nuss_verbose) {
+    fprintf(stderr, "Reading %li bytes with block size %ld...\n", buffer->len,
+            block_size);
+  }
+
+
+  u32 amount = 0;
+  for (usize read = 0; read < buffer->len; read += amount) { // NOLINT
+    amount = ftdi_read_data(ftdi, buffer->data + read,
+                             MIN(block_size, buffer->len - read));
+    if (amount > 0 && nuss_verbose) {
+      fprintf(stderr, "read %d bytes - %li/%li bytes\n", amount, amount + read,
+              buffer->len);
+    } else {
+      if (nuss_verbose) {
+        fprintf(stderr, "read timeout!\n");
+      }
+      ftdi_free(ftdi);
+      return ERR_NUS_USB;
+    }
+  }
+
+  // free ftdi
+  if (usb_free(ftdi)) {
+    return ERR_NUS_USB;
+  }
+  return OK; 
+}
+
 #else
 
 Error nus_usb_boot() {
@@ -223,5 +270,7 @@ Error nus_usb_boot() {
 }
 
 Error nus_usb_load(Buffer *buffer) { return nus_usb_boot(); }
+
+Error nus_usb_dump(Buffer *buffer) { return nus_usb_boot(); }
 
 #endif
