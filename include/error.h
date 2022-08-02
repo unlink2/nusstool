@@ -14,4 +14,11 @@ typedef enum Error {
 
 void error_fprint(FILE *file, Error error);
 
+// TODO instead of returning errors,
+// return structs that are lead with the
+// error header - this will avoid out params
+typedef struct ErrorHeader {
+  Error error;
+} ErrorHeader;
+
 #endif
