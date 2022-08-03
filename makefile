@@ -5,7 +5,9 @@ CC=gcc
 BIN_INSTALL_DIR := /usr/local/bin
 LIB_INSTALL_DIR := /usr/local/lib 
 INC_INSTALL_DIR := /usr/local/include/$(TARGET_EXEC)/
-TYPE := bin # valid inputs: bin, a (static lib), so (shared lib) 
+
+ # valid inputs: bin, a (static lib), so (shared lib)
+TYPE := bin 
 
 BUILD_DIR := ./build
 BUILD_DIR_TEST := $(BUILD_DIR)/build_test
