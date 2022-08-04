@@ -52,6 +52,7 @@ enum ArgpKeys {
   NUS_DUMP,
   NUS_RAM_WR,
   NUS_RAM_RD,
+  WR_ARR,
 };
 
 static struct argp_option options[] = {
@@ -77,6 +78,7 @@ static struct argp_option options[] = {
     {"verbose", 'v', NULL, 0, "Enable output"},
     {"bl", 'B', "OFFSET", 0, "Set buffer lenght"},
     {"addr", 'A', "OFFSET", 0, "Set address for usb operations"},
+    {"warray", WR_ARR, "NAME", 0, "Output as const u8 array with name"},
 
     {"nustitle", NUS_TITLE, "TITLE", 0, ""},
     {"nusboot", NUS_BOOT_ADDR, "ADDRESS", 0, ""},
@@ -144,6 +146,8 @@ union Operation {
 struct Arguments {
   char *output_file;
   char *input_file;
+
+  char *array_name;
 
   usize buffer_len;
   u32 addr;
@@ -316,6 +320,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case NUS_RAM_RD:
     arguments->op_kind = NUSRAMRD;
     break;
+  case WR_ARR:
+    arguments->array_name = arg;
+    break;
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -474,7 +481,11 @@ int main(int argc, char **argv) {
     nus_fprint(stdout, &header);
   }
   if (!arguments.dry) {
-    buffer_write(&buffer, out);
+    if (arguments.array_name) {
+      buffer_write_array(&buffer, out, arguments.array_name);
+    } else {
+      buffer_write(&buffer, out);
+    }
   }
 
   buffer_free(&buffer);

@@ -57,6 +57,15 @@ Error buffer_write(const Buffer *buffer, FILE *file) {
   return OK;
 }
 
+Error buffer_write_array(const Buffer *buffer, FILE *file, char *name) {
+  fprintf(file, "const unsigned char %s[] = {\n", name);
+  for (usize i = 0; i < buffer->len; i++) { // NOLINT
+    fprintf(file, "0x%x, ", buffer->data[i]);
+  }
+  fprintf(file, "\n};\n#define %s_LEN %ld\n", name, buffer->len);
+  return OK;
+}
+
 void buffer_pad_to(Buffer *buffer, const usize len, const u8 val) {
   // if we already have the desired size dont do anything
   if (len <= buffer->len) {
