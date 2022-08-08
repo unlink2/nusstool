@@ -9,7 +9,10 @@ typedef enum Error {
   ERR_HEADER_NOT_ENOUGH_DATA,
   ERR_READ,
   ERR_WRITE,
-  ERR_NUS_USB
+  ERR_NUS_USB,
+  ERR_BMP_BAD_COLOR,
+  ERR_BMP_HEADER,
+  ERR_BMP_UNSUPPORTED_BPP
 } Error;
 
 void error_fprint(FILE *file, Error error);

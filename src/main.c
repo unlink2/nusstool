@@ -2,6 +2,7 @@
 /**
  * When built without test
  */
+#include "bitmap.h"
 #include "cfg.h"
 #include "nusstool.h"
 #include "nususb.h"
@@ -53,6 +54,8 @@ enum ArgpKeys {
   NUS_RAM_WR,
   NUS_RAM_RD,
   WR_ARR,
+
+  BMP_1BPP
 };
 
 static struct argp_option options[] = {
@@ -95,6 +98,9 @@ static struct argp_option options[] = {
      "Dump data over usb. Data is read into the buffer until it is filled"},
     {"nuswrusb", NUS_RAM_WR, NULL, 0, "Write buffer to ram"},
     {"nusrdusb", NUS_RAM_RD, NULL, 0, "Read buffer from ram"},
+
+    {"bmp1", BMP_1BPP, NULL, 0,
+     "Interpret input as bmp and convert to 1bpp array"},
     {0}};
 
 enum OperationKind {
@@ -108,7 +114,8 @@ enum OperationKind {
   NUSLOAD,
   NUSDUMP,
   NUSRAMRD,
-  NUSRAMWR
+  NUSRAMWR,
+  BMP_1BPP_OP
 };
 
 struct Inject {
@@ -323,6 +330,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case WR_ARR:
     arguments->array_name = arg;
     break;
+  case BMP_1BPP:
+    arguments->op_kind = BMP_1BPP_OP;
+    break;
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -426,6 +436,11 @@ int main(int argc, char **argv) {
   case NUSRAMRD:
     if ((exit_code = nus_usb_ram_rd(&buffer, arguments.addr)) && nuss_verbose) {
       fprintf(stderr, "read failed\n");
+    }
+    break;
+  case BMP_1BPP_OP:
+    if ((exit_code = bitmap_to_1bpp(&buffer)) && nuss_verbose) {
+      fprintf(stderr, "bmp conversion failed\n");
     }
     break;
   }
