@@ -40,9 +40,12 @@ Error bitmap_to_1bpp(Buffer *buffer) {
   }
 
   const usize img_len = (usize)img_header.w * (usize)img_header.h;
-
   buffer->len = img_len / 8 + (img_len % 8 ? 1 : 0);
   buffer->data = malloc(buffer->len);
+
+  // length of a row of converted bmp1 data
+  const usize buffer_row_len = buffer->len / img_header.h;
+
   memset(buffer->data, 0, buffer->len);
 
   if (img_header.bpp != 24) {
@@ -52,37 +55,36 @@ Error bitmap_to_1bpp(Buffer *buffer) {
   const usize pixel_len = 3;
   const usize stride = (img_header.w * pixel_len) % 4;
 
-  u8 *current = src.data + header.offset;
-  u8 *byte = buffer->data + buffer->len - 1; // current byte to write to
-  usize bit = 0;
+  u8 *current = src.data + header.offset + img_len * pixel_len - 1;
   // now just loop over the 24bpp image
   for (usize y = 0; y < img_header.h; y++) {
+    // obtain the current row in reverse order
+    u8 *byte = buffer->data + buffer->len - 1 -
+               (buffer_row_len * (img_header.h - y)) + buffer_row_len;
+    usize bit = 0;
+
+    // rows are aligned! pad now!
+    current -= stride;
     for (usize x = 0; x < img_header.w; x++) {
       u32 pixel = 0;
       memcpy(&pixel, current, pixel_len);
 
       if (pixel != 0) {
-        *byte = ((*byte) | ((u32)1 << bit));
+        *byte = ((*byte) | ((u32)1 << (7 - bit)));
+        printf("1");
+      } else {
+        printf("0");
       }
+      printf("(%x) ", pixel);
 
       bit++;
-      current += pixel_len;
+      current -= pixel_len;
       if (bit == 8) {
         bit = 0;
         byte--;
       }
     }
-
-    // always move on to the next byte for each row!
-    // unless the bit count is already 0 in which case
-    // we already were at a byte boundry
-    if (bit != 0) {
-      bit = 0;
-      byte--;
-    }
-
-    // rows are aligned! pad now!
-    current += stride;
+    printf("\n");
   }
 
   buffer_free(&src);
