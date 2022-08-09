@@ -39,7 +39,9 @@ Error bitmap_to_1bpp(Buffer *buffer) {
     return ERR_BMP_HEADER;
   }
 
-  buffer->len = ((usize)img_header.w * (usize)img_header.h) / 8;
+  const usize img_len = (usize)img_header.w * (usize)img_header.h;
+
+  buffer->len = img_len / 8 + (img_len % 8 ? 1 : 0);
   buffer->data = malloc(buffer->len);
   memset(buffer->data, 0, buffer->len);
 
@@ -51,8 +53,8 @@ Error bitmap_to_1bpp(Buffer *buffer) {
   const usize stride = (img_header.w * pixel_len) % 4;
 
   u8 *current = src.data + header.offset;
-  u8 *byte = buffer->data; // currnet byte to write to
-  usize bit = 8;
+  u8 *byte = buffer->data + buffer->len - 1; // current byte to write to
+  usize bit = 0;
   // now just loop over the 24bpp image
   for (usize y = 0; y < img_header.h; y++) {
     for (usize x = 0; x < img_header.w; x++) {
@@ -60,25 +62,27 @@ Error bitmap_to_1bpp(Buffer *buffer) {
       memcpy(&pixel, current, pixel_len);
 
       if (pixel != 0) {
-        *byte = ((*byte) | ((u32)1 << (bit - 1)));
+        *byte = ((*byte) | ((u32)1 << bit));
       }
 
-      bit--;
+      bit++;
       current += pixel_len;
-      if (bit == 0) {
-        bit = 8;
-        byte++;
+      if (bit == 8) {
+        bit = 0;
+        byte--;
       }
     }
+
+    // always move on to the next byte for each row!
+    // unless the bit count is already 0 in which case
+    // we already were at a byte boundry
+    if (bit != 0) {
+      bit = 0;
+      byte--;
+    }
+
     // rows are aligned! pad now!
     current += stride;
-  }
-
-  // lastly invert rows
-  for (usize i = 0; i < buffer->len / 2; i++) {
-    u8 tmp = buffer->data[buffer->len - 1 - i];
-    buffer->data[buffer->len - 1 - i] = buffer->data[i];
-    buffer->data[i] = tmp;
   }
 
   buffer_free(&src);

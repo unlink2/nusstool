@@ -5,15 +5,16 @@
 #include "types.h"
 
 /**
- * Subcommand that converts 
- * regular bitmaps 
+ * Subcommand that converts
+ * regular bitmaps
  * to the bmp1 format that is used in-game
  * to store 1bpp assets.
  *
- * The bmp1 format is simply an array of 
+ * The bmp1 format is simply an array of
  * pixel data. each bit is 1 pixel.
  * There is no width or height information or color attached!
  * The origin is top left.
+ * Each row is always padded to the full byte!
  */
 
 typedef struct BitmapHeader {
