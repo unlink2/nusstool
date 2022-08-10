@@ -58,6 +58,8 @@ Error bitmap_to_1bpp(Buffer *buffer) {
   // const i32 stride = (4 * ((img_header.w * img_header.bpp + 31) / 32));
   const usize padding = (4 - (img_header.w * pixel_len) % 4) % 4;
 
+  const u8 bit_width = MIN(img_header.w, 8);
+
   u8 *current =
       src.data + header.offset + img_len * pixel_len + padding * img_header.h;
   // now just loop over the 24bpp image
@@ -74,12 +76,12 @@ Error bitmap_to_1bpp(Buffer *buffer) {
       memcpy(&pixel, current - pixel_len, pixel_len);
 
       if (pixel != 0) {
-        *byte = ((*byte) | ((u32)1 << (7 - bit)));
+        *byte = ((*byte) | ((u32)1 << (bit_width - 1 - bit)));
       }
 
       bit++;
       current -= pixel_len;
-      if (bit == 8) {
+      if (bit == bit_width) {
         bit = 0;
         byte--;
       }
