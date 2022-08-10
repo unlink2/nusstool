@@ -24,9 +24,11 @@
 
 #define malloc(n) debug_malloc(n, __FILE__, __LINE__)
 #define free(n) debug_free(n, __FILE__, __LINE__)
+#define assert(n) debug_assert(n, __FILE__, __LINE__)
 
 void *debug_malloc(usize size, char *file, usize line);
 void debug_free(void *ptr, char *file, usize line);
+void debug_assert(n, char *file, usize line);
 
 #endif
 
