@@ -15,6 +15,7 @@ void buffer_init(Buffer *buffer);
 Error buffer_read(Buffer *buffer, FILE *file);
 Error buffer_write(const Buffer *buffer, FILE *file);
 Error buffer_write_array(const Buffer *buffer, FILE *file, char *name);
+Error buffer_write_text_array(const Buffer *buffer, FILE *file, char *name);
 
 void buffer_pad_to(Buffer *buffer, const usize len, const u8 val);
 void buffer_pad_by(Buffer *buffer, const usize len, const u8 val);

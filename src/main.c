@@ -54,6 +54,7 @@ enum ArgpKeys {
   NUS_RAM_WR,
   NUS_RAM_RD,
   WR_ARR,
+  WR_TXTARR,
 
   BMP_1BPP
 };
@@ -82,6 +83,9 @@ static struct argp_option options[] = {
     {"bl", 'B', "OFFSET", 0, "Set buffer lenght"},
     {"addr", 'A', "OFFSET", 0, "Set address for usb operations"},
     {"warray", WR_ARR, "NAME", 0, "Output as const u8 array with name"},
+    {"wtxtarray", WR_TXTARR, "NAME", 0,
+     "Output as const u8 array but assumes the content of input is a correctly "
+     "formatted text input (a, b, c...)"},
 
     {"nustitle", NUS_TITLE, "TITLE", 0, ""},
     {"nusboot", NUS_BOOT_ADDR, "ADDRESS", 0, ""},
@@ -155,6 +159,7 @@ struct Arguments {
   char *input_file;
 
   char *array_name;
+  char *text_array_name;
 
   usize buffer_len;
   u32 addr;
@@ -330,6 +335,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case WR_ARR:
     arguments->array_name = arg;
     break;
+  case WR_TXTARR:
+    arguments->text_array_name = arg;
+    break;
   case BMP_1BPP:
     arguments->op_kind = BMP_1BPP_OP;
     break;
@@ -498,6 +506,8 @@ int main(int argc, char **argv) {
   if (!arguments.dry) {
     if (arguments.array_name) {
       buffer_write_array(&buffer, out, arguments.array_name);
+    } else if (arguments.text_array_name) {
+      buffer_write_text_array(&buffer, out, arguments.text_array_name);
     } else {
       buffer_write(&buffer, out);
     }
