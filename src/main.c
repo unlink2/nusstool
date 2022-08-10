@@ -364,7 +364,7 @@ int main(int argc, char **argv) {
   /* Default values. */
   arguments.output_file = NULL;
   arguments.input_file = NULL;
-  arguments.array_type = "const unsinged char";
+  arguments.array_type = "const unsigned char";
 
   FILE *in = stdin;
   FILE *out = stdout;
