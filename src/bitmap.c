@@ -1,6 +1,7 @@
 #include "bitmap.h"
 #include <arpa/inet.h>
 #include <string.h>
+#include "macros.h"
 
 Error bitmap_header_from_bytes(BitmapHeader *b, const u8 *data,
                                const usize len) {
@@ -40,11 +41,12 @@ Error bitmap_to_1bpp(Buffer *buffer) {
   }
 
   const usize img_len = (usize)img_header.w * (usize)img_header.h;
-  buffer->len = img_len / 8 + (img_len % 8 ? 1 : 0);
+  buffer->len = ((usize)img_header.w / 8 + ((usize)img_header.w % 8 ? 1 : 0)) *
+                img_header.h;
   buffer->data = malloc(buffer->len);
 
   // length of a row of converted bmp1 data
-  const usize buffer_row_len = buffer->len / img_header.h;
+  const usize buffer_row_len = MAX(1, buffer->len / img_header.h);
 
   memset(buffer->data, 0, buffer->len);
 
@@ -52,10 +54,12 @@ Error bitmap_to_1bpp(Buffer *buffer) {
     return ERR_BMP_UNSUPPORTED_BPP;
   }
 
-  const usize pixel_len = 3;
-  const usize stride = (img_header.w * pixel_len) % 4;
+  const usize pixel_len = img_header.bpp / 8;
+  // const i32 stride = (4 * ((img_header.w * img_header.bpp + 31) / 32));
+  const usize padding = (4 - (img_header.w * pixel_len) % 4) % 4;
 
-  u8 *current = src.data + header.offset + img_len * pixel_len - 1;
+  u8 *current =
+      src.data + header.offset + img_len * pixel_len + padding * img_header.h;
   // now just loop over the 24bpp image
   for (usize y = 0; y < img_header.h; y++) {
     // obtain the current row in reverse order
@@ -64,18 +68,14 @@ Error bitmap_to_1bpp(Buffer *buffer) {
     usize bit = 0;
 
     // rows are aligned! pad now!
-    current -= stride;
+    current -= padding;
     for (usize x = 0; x < img_header.w; x++) {
       u32 pixel = 0;
-      memcpy(&pixel, current, pixel_len);
+      memcpy(&pixel, current - pixel_len, pixel_len);
 
       if (pixel != 0) {
         *byte = ((*byte) | ((u32)1 << (7 - bit)));
-        printf("1");
-      } else {
-        printf("0");
       }
-      printf("(%x) ", pixel);
 
       bit++;
       current -= pixel_len;
@@ -84,7 +84,6 @@ Error bitmap_to_1bpp(Buffer *buffer) {
         byte--;
       }
     }
-    printf("\n");
   }
 
   buffer_free(&src);
