@@ -57,8 +57,9 @@ Error buffer_write(const Buffer *buffer, FILE *file) {
   return OK;
 }
 
-Error buffer_write_array(const Buffer *buffer, FILE *file, char *name) {
-  fprintf(file, "const unsigned char %s[] = {\n", name);
+Error buffer_write_array(const Buffer *buffer, FILE *file, char *name,
+                         char *type) {
+  fprintf(file, "%s %s[] = {\n", type, name);
   for (usize i = 0; i < buffer->len; i++) { // NOLINT
     fprintf(file, "0x%x, ", buffer->data[i]);
   }
@@ -66,8 +67,9 @@ Error buffer_write_array(const Buffer *buffer, FILE *file, char *name) {
   return OK;
 }
 
-Error buffer_write_text_array(const Buffer *buffer, FILE *file, char *name) {
-  fprintf(file, "const unsigned char %s[] = {\n", name);
+Error buffer_write_text_array(const Buffer *buffer, FILE *file, char *name,
+                              char *type) {
+  fprintf(file, "%s %s[] = {\n", type, name);
   fprintf(file, "%s", buffer->data);
   fprintf(file, "\n};\n#define %s_LEN %ld\n", name, buffer->len);
   return OK;

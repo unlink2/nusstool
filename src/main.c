@@ -55,6 +55,7 @@ enum ArgpKeys {
   NUS_RAM_RD,
   WR_ARR,
   WR_TXTARR,
+  WR_ARRAY_TYPE,
 
   BMP_1BPP
 };
@@ -86,6 +87,7 @@ static struct argp_option options[] = {
     {"wtxtarray", WR_TXTARR, "NAME", 0,
      "Output as const u8 array but assumes the content of input is a correctly "
      "formatted text input (a, b, c...)"},
+    {"warrtype", WR_ARRAY_TYPE, "TYPE", 0, "The data type for the array"},
 
     {"nustitle", NUS_TITLE, "TITLE", 0, ""},
     {"nusboot", NUS_BOOT_ADDR, "ADDRESS", 0, ""},
@@ -160,6 +162,7 @@ struct Arguments {
 
   char *array_name;
   char *text_array_name;
+  char *array_type;
 
   usize buffer_len;
   u32 addr;
@@ -338,6 +341,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case WR_TXTARR:
     arguments->text_array_name = arg;
     break;
+  case WR_ARRAY_TYPE:
+    arguments->array_type = arg;
+    break;
   case BMP_1BPP:
     arguments->op_kind = BMP_1BPP_OP;
     break;
@@ -358,6 +364,7 @@ int main(int argc, char **argv) {
   /* Default values. */
   arguments.output_file = NULL;
   arguments.input_file = NULL;
+  arguments.array_type = "const unsinged char";
 
   FILE *in = stdin;
   FILE *out = stdout;
@@ -505,9 +512,11 @@ int main(int argc, char **argv) {
   }
   if (!arguments.dry) {
     if (arguments.array_name) {
-      buffer_write_array(&buffer, out, arguments.array_name);
+      buffer_write_array(&buffer, out, arguments.array_name,
+                         arguments.array_type);
     } else if (arguments.text_array_name) {
-      buffer_write_text_array(&buffer, out, arguments.text_array_name);
+      buffer_write_text_array(&buffer, out, arguments.text_array_name,
+                              arguments.array_type);
     } else {
       buffer_write(&buffer, out);
     }
