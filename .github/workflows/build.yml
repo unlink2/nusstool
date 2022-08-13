@@ -17,5 +17,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: sudo apt install libftdi1-dev
     - name: Build
       run: make build

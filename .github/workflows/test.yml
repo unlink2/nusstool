@@ -18,6 +18,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install dependencies
-      run: sudo apt install libcmocka-dev 
+      run: sudo apt install libcmocka-dev libftdi1-dev
     - name: Run tests
       run: make test
