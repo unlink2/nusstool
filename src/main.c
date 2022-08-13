@@ -544,10 +544,12 @@ int main(int argc, char **argv) {
 
 #include "macros.h"
 #include "nusheader.h"
+#include "buffer.h"
 
 int main(int argc, char **argv) {
   const struct CMUnitTest tests[] = {cmocka_unit_test(test_crc_fail),
-                                     cmocka_unit_test(test_crc)};
+                                     cmocka_unit_test(test_crc),
+                                     cmocka_unit_test(test_bmp1_converter)};
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
 

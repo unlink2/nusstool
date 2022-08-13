@@ -53,4 +53,10 @@ Error bitmap_image_header_from_bytes(BitmapImageHeader *b, const u8 *data,
 // TODO handle size of bmp
 Error bitmap_to_1bpp(Buffer *buffer);
 
+#ifdef TEST
+
+void test_bmp1_converter(void **state);
+
+#endif
+
 #endif
