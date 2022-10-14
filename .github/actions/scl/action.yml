@@ -1,0 +1,10 @@
+name: Build scl
+runs:
+  using: "composite"
+  steps:
+  - name: Checkout scl 
+    run: git clone https://github.com/unlink2/scl 
+    shell: bash
+  - name: Build scl 
+    run: cd scl && make && sudo make install
+    shell: bash

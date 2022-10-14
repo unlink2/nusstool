@@ -1,18 +1,19 @@
+NAME := nusstool
 TARGET_EXEC := nusstool
 TEST_EXEC := test
 CC=gcc
 
 BIN_INSTALL_DIR := /usr/local/bin
 LIB_INSTALL_DIR := /usr/local/lib 
-INC_INSTALL_DIR := /usr/local/include/$(TARGET_EXEC)/
+INC_INSTALL_DIR := /usr/local/include/$(NAME)/
 
- # valid inputs: bin, a (static lib), so (shared lib)
+# valid inputs: bin, a (static lib), so (shared lib), h (header only)
 TYPE := bin 
 
 BUILD_DIR := ./build
 BUILD_DIR_TEST := $(BUILD_DIR)/build_test
 SRC_DIRS := ./src
-INC_DIRS := ./include
+INC_DIRS := ./include 
 EX_CC_FLAGS :=
 EX_LD_FLAGS :=
 # Find all the C and C++ files we want to compile
@@ -39,7 +40,7 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 CFLAGS := $(INC_FLAGS) -MMD -MP -Wall -Wpedantic -g $(EX_CC_FLAGS) -DTYPE=$(TYPE) -std=c99 
 
 # remove reference to lftdi1 if feature is not wanted 
-LDFLAGS := $(EX_LD_FLAGS) -lftdi1 
+LDFLAGS := $(EX_LD_FLAGS) -lftdi1 -lscl 
 
 # The final build step.
 # This builds a binary, shared or static library
@@ -48,6 +49,8 @@ ifeq ($(TYPE), a)
 	ar -rcs $@ $(OBJS)
 else  ifeq ($(TYPE), so)
 	$(CC) -shared $(OBJS) -o $@ $(LDFLAGS)
+else  ifeq ($(TYPE), h)
+	$(CC) -E $(INC_DIRS)/$(TARGET_EXEC) > $(BUILD_DIR)/$(TARGET_EXEC)  
 else 
 	$(CC) $(OBJS) -o $@ $(LDFLAGS)
 endif 
@@ -73,6 +76,12 @@ build_test:
 test: 
 	make build_test BUILD_DIR=$(BUILD_DIR_TEST) 
 	make run TARGET_EXEC=$(TEST_EXEC) BUILD_DIR=$(BUILD_DIR_TEST) TYPE=bin
+
+# run integration tests 
+.PHONY: int
+int:
+	make 
+	trialrun tests/*.tr
 
 # Run task 
 .PHONY: run
@@ -110,14 +119,14 @@ clean:
 # installs the binary, shared library or static library  
 .PHONY: install 
 install:
-ifeq ($(BIN), a)
+ifeq ($(TYPE), a)
 	mkdir -p $(INC_INSTALL_DIR) 
 	cp -f $(BUILD_DIR)/$(TARGET_EXEC) $(LIB_INSTALL_DIR)
-	for u in $(INC_DIRS); do echo $$u; cp -f $$u $(INC_INSTALL_DIR); done
-else ifeq ($(BIN), so)
+	for u in $(INC_DIRS)/*; do echo $$u; cp -r -f $$u $(INC_INSTALL_DIR); done
+else ifeq ($(TYPE), so)
 	mkdir -p $(INC_INSTALL_DIR) 
 	cp -f $(BUILD_DIR)/$(TARGET_EXEC) $(LIB_INSTALL_DIR)
-	for u in $(INC_DIRS); do echo $$u; cp -f $$u $(INC_INSTALL_DIR); done
+	for u in $(INC_DIRS)/*; do echo $$u; cp -r -f $$u $(INC_INSTALL_DIR); done
 else 
 	mkdir -p $(BIN_INSTALL_DIR)
 	cp -f $(BUILD_DIR)/$(TARGET_EXEC) $(BIN_INSTALL_DIR)

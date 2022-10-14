@@ -17,7 +17,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: ./.github/actions/scl
+    - uses: ./.github/actions/tr
     - name: Install dependencies
       run: sudo apt install libcmocka-dev libftdi1-dev
+    - name: Run lint 
+      run: echo "Lint disabled" # make buildcmd && make lint
     - name: Run tests
       run: make test
+    - name: Run trialrun 
+      run: make int
