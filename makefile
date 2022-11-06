@@ -10,10 +10,16 @@ INC_INSTALL_DIR := /usr/local/include/$(NAME)/
 # valid inputs: bin, a (static lib), so (shared lib), h (header only)
 TYPE := bin 
 
+# configure how scl should be used 
+SCL_INC := scl/include  
+SCL_SRC := scl/src
+SCL_A := # /usr/local/lib/libscl.a  
+SCL_LIB := # $(SCL_A) -lscl
+
 BUILD_DIR := ./build
 BUILD_DIR_TEST := $(BUILD_DIR)/build_test
-SRC_DIRS := ./src
-INC_DIRS := ./include 
+SRC_DIRS := ./src $(SCL_SRC) 
+INC_DIRS := ./include $(SCL_INC)
 EX_CC_FLAGS :=
 EX_LD_FLAGS :=
 # Find all the C and C++ files we want to compile
@@ -40,7 +46,7 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 CFLAGS := $(INC_FLAGS) -MMD -MP -Wall -Wpedantic -g $(EX_CC_FLAGS) -DTYPE=$(TYPE) -std=c99 
 
 # remove reference to lftdi1 if feature is not wanted 
-LDFLAGS := $(EX_LD_FLAGS) -lftdi1 -lscl 
+LDFLAGS := $(EX_LD_FLAGS) -lftdi1 $(SCL_LIB) 
 
 # The final build step.
 # This builds a binary, shared or static library
