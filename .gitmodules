@@ -1,3 +1,0 @@
-[submodule "scl"]
-	url = git@github.com:unlink2/scl.git
-	path = scl
